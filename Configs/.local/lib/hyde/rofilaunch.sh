@@ -44,12 +44,24 @@ case "$1" in
         rofi_args+=("${ROFI_LAUNCH_RUN_ARGS[@]:-}")
         shift
         ;;
+    n | --nvidia)
+        # Same typed-command entry as "run", routed straight through
+        # gpu-offload.sh instead of app.sh/app2unit, so the PRIME offload
+        # env vars land directly in the launched process with nothing in
+        # between that could reset them.
+        r_mode="run"
+        rofi_config="${ROFI_LAUNCH_RUN_STYLE:-$rofi_config}"
+        rofi_args+=("-run-command" "hyde-shell gpu-offload {cmd}")
+        rofi_args+=("${ROFI_LAUNCH_RUN_ARGS[@]:-}")
+        shift
+        ;;
     h | --help)
         echo -e "$(basename "$0") [action]"
         echo "d :  drun mode"
         echo "w :  window mode"
         echo "f :  filebrowser mode,"
         echo "r :  run mode"
+        echo "n :  run mode, on the NVIDIA GPU (PRIME offload)"
         exit 0
         ;;
     *)

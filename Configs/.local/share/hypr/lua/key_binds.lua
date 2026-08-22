@@ -162,6 +162,8 @@ hl.bind(MOD .. " + J", hl.dsp.layout("togglesplit"), _F)
 
 _F = {description = "[Launcher|Rofi menus] application finder"}
 hl.bind(MOD .. " + A", hl.dsp.exec_cmd(hyde.sh.menu.apps()), _F)
+_F = {description = "[Launcher|Rofi menus] run a command on the NVIDIA GPU (PRIME offload)"}
+hl.bind(MOD .. " + SHIFT + N", hl.dsp.exec_cmd(hyde.sh.menu.nvidia_run()), _F)
 _F = {description = "[Launcher|Rofi menus] window switcher"}
 hl.bind(MOD .. " + TAB", hl.dsp.exec_cmd(hyde.sh.menu.windows()), _F)
 _F = {description = "[Launcher|Rofi menus] file finder"}
@@ -172,10 +174,6 @@ _F = {description = "[Launcher|Rofi menus] emoji picker"}
 hl.bind(MOD .. " + comma", hl.dsp.exec_cmd(hyde.sh.menu.emoji()), _F)
 _F = {description = "[Launcher|Rofi menus] glyph picker"}
 hl.bind(MOD .. " + period", hl.dsp.exec_cmd(hyde.sh.menu.glyph()), _F)
-_F = {description = "[Launcher|Rofi menus] clipboard"}
-hl.bind(MOD .. " + V", hl.dsp.exec_cmd(hyde.sh.menu.clipboard()), _F)
-_F = {description = "[Launcher|Rofi menus] clipboard manager"}
-hl.bind(MOD .. " + SHIFT + V", hl.dsp.exec_cmd(hyde.sh.menu.cliphist()), _F)
 _F = {description = "[Launcher|Rofi menus] select rofi launcher"}
 hl.bind(MOD .. " + SHIFT + A", hl.dsp.exec_cmd(hyde.sh.menu.select()), _F)
 _F = {description = "[Launcher|Rofi menus] Calculator"}
@@ -288,9 +286,28 @@ local kp = {
     [10] = {"KP_0", "KP_Insert"}
 }
 
+-- Bound on the symbol the French AZERTY number row actually produces
+-- unshifted (& é " ' ( - è _ ç à for 1..0), not on the digit itself: on
+-- AZERTY the bare "1".."0" keysyms never fire without also holding Shift,
+-- since the unshifted key produces punctuation. hl.bind's Lua parser has no
+-- code: (hardware keycode) escape hatch, unlike Hyprland's .conf bind
+-- syntax, so this has to be done via the layout's own keysym names.
+local ws_key = {
+    [1] = "ampersand",
+    [2] = "eacute",
+    [3] = "quotedbl",
+    [4] = "apostrophe",
+    [5] = "parenleft",
+    [6] = "minus",
+    [7] = "egrave",
+    [8] = "underscore",
+    [9] = "ccedilla",
+    [10] = "agrave"
+}
+
 for i = 1, 10 do
     _F = {description = "[Workspaces|Navigation] navigate to workspace " .. i}
-    hl.bind(MOD .. " + " .. ((i == 10) and 0 or i), hl.dsp.focus({workspace = i}), _F)
+    hl.bind(MOD .. " + " .. ws_key[i], hl.dsp.focus({workspace = i}), _F)
 end
 
 for i = 1, 10 do
@@ -313,7 +330,7 @@ hl.bind(MOD .. " + CONTROL + DOWN", hl.dsp.focus({workspace = "empty"}), _F)
 
 for i = 1, 10 do
     _F = {description = "[Workspaces|Move window to workspace] move focused window to workspace " .. i}
-    hl.bind(MOD .. " + SHIFT + " .. ((i == 10) and 0 or i), hl.dsp.window.move({workspace = i}), _F)
+    hl.bind(MOD .. " + SHIFT + " .. ws_key[i], hl.dsp.window.move({workspace = i}), _F)
 end
 
 for i = 1, 10 do
@@ -350,7 +367,7 @@ hl.bind(MOD .. " + ALT + S", hl.dsp.window.move({workspace = "special", follow =
 ---
 for i = 1, 10 do
     _F = {description = "[Workspaces|Move window (Don't follow)] move focused window to workspace " .. i}
-    hl.bind(MOD .. " + ALT + " .. ((i == 10) and 0 or i), hl.dsp.window.move({workspace = i, follow = false}), _F)
+    hl.bind(MOD .. " + ALT + " .. ws_key[i], hl.dsp.window.move({workspace = i, follow = false}), _F)
 end
 
 -- Optionals

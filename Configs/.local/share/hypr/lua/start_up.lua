@@ -18,13 +18,9 @@ hl.on(
 		check_exec(hs.notifications)
 		check_exec(hs.auth_dialogue)
 		check_exec("hyprctl setcursor " .. hyde.config.ui.cursor_theme .. " " .. hyde.config.ui.cursor_size)
-		check_exec(hs.text_clipboard)
-		check_exec(hs.image_clipboard)
-		check_exec(hs.clipboard_persist)
 		check_exec(hs.idle_daemon)
 		check_exec(hs.battery_notify)
 		check_exec(hs.applet_network_manager)
-		check_exec(hs.applet_removable_media)
 		check_exec(hs.applet_bluetooth)
 		check_exec(hs.hyde_config)
 	end

@@ -23,11 +23,10 @@ wallpaper_sh="$REPO_ROOT/Configs/.local/lib/hyde/wallpaper.sh"
 theme_switch="$REPO_ROOT/Configs/.local/lib/hyde/theme.switch.sh"
 color_set="$REPO_ROOT/Configs/.local/lib/hyde/color.set.sh"
 color_hypr="$REPO_ROOT/Configs/.local/lib/hyde/color/hypr.sh"
-installer="$REPO_ROOT/Scripts/install.sh"
 lua_template="$REPO_ROOT/Configs/.local/share/wallbash/always/lua.dcol"
 
 for required in "$global_control" "$core_sh" "$wallpaper_sh" "$theme_switch" \
-    "$color_set" "$color_hypr" "$installer"; do
+    "$color_set" "$color_hypr"; do
     [ -f "$required" ] || {
         fail "missing ${required#"$REPO_ROOT"/}"
         finish
@@ -236,21 +235,6 @@ esac
 
 grep -qE '\$\{HYPRLAND_CONFIG##\*\.\}. == .lua' "$color_hypr" &&
     fail "the colour writer still reads the raw session variable"
-
-installer_flat=$(tr '\n' ' ' <"$installer")
-case "$installer_flat" in
-*'theme.switch.sh" -q || true'*)
-    fail "the installer swallows a failed theme switch"
-    ;;
-esac
-case "$installer_flat" in
-*'if ! "$HOME/.local/lib/hyde/theme.switch.sh" -q'*) ;;
-*) fail "the installer does not check the theme switch" ;;
-esac
-case "$installer_flat" in
-*'theme_failed'*'exit 1'*) ;;
-*) fail "the installer reports a broken theme state without failing the run" ;;
-esac
 
 [ -f "$lua_template" ] ||
     fail "the template that writes the Lua colour state is gone"

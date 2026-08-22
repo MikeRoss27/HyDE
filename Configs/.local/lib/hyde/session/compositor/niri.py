@@ -4,6 +4,7 @@ Prototype support via niri msg --json.
 
 import json
 import os
+import shlex
 import subprocess
 from typing import Any
 
@@ -63,7 +64,11 @@ class NiriBackend:
 
     def launch(self, command: str, client: dict, ws_target: str) -> None:
 
-        subprocess.Popen(command, shell=True)
+        # command is a pre-built, per-argument shlex.quote()'d string (see
+        # session.py's _proc_cmdline); shlex.split() reverses that quoting
+        # into an argv list, so this runs with no shell in between at all,
+        # not just a shell that happens to be safe today.
+        subprocess.Popen(shlex.split(command))
 
     def launch_forking(self, command: str, client: dict, ws_target: str) -> None:
 
@@ -71,7 +76,10 @@ class NiriBackend:
 
     def dispatch_plugin_cmd(self, cmd: str, client: dict) -> None:
 
-        subprocess.Popen(cmd, shell=True)
+        # Same reasoning as launch() above: cmd is plugin-built with
+        # shlex.quote() on any interpolated value, so splitting it back into
+        # argv avoids a shell entirely instead of relying on that quoting.
+        subprocess.Popen(shlex.split(cmd))
 
     def reposition(self, addr: str, saved: dict) -> None:
 

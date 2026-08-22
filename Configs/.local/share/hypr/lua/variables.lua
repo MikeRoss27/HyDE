@@ -43,24 +43,13 @@ hc.start.auth_dialogue = "hyde-shell app -t " .. svc .. " -- polkitkdeauth.sh"
 hc.start.idle_daemon = "hyde-shell app -u " .. unt .. "-idle.service -t " .. svc .. " -- hypridle"
 hc.start.blue_light_filter_daemon =
     "hyde-shell app -u " .. unt .. "-blue-light-filter.service -t " .. svc .. " -- hyprsunset"
-hc.start.text_clipboard =
-    "hyde-shell app -u " ..
-    unt .. "-text-clipboard.service -t " .. svc .. " wl-paste --type text --watch cliphist store"
-hc.start.image_clipboard =
-    "hyde-shell app -u " ..
-    unt .. "-image-clipboard.service -t " .. svc .. " wl-paste --type image --watch cliphist store"
-hc.start.clipboard_persist =
-    "hyde-shell app -u " .. unt .. "-clipboard-persist.service -t " .. svc .. " wl-clip-persist --clipboard regular"
 hc.start.wallpaper =
     "hyde-shell app -u " .. unt .. "-wallpaper.service -t " .. svc .. " -- wallpaper.sh --start --global"
 hc.start.bar = "hyde-shell app -u " .. unt .. "-bar.scope -t " .. scp .. " -- waybar.py --watch" -- waybar.py injects it itself as -u $unt.service :- therefore we use scope here to avoid conflicts
-hc.start.notifications = "hyde-shell app -u " .. unt .. "-notifications.service -t " .. svc .. " -- dunst"
+hc.start.notifications = "hyde-shell app -u " .. unt .. "-notifications.service -t " .. svc .. " -- swaync"
 hc.start.battery_notify = "hyde-shell app -u " .. unt .. "-battery-notify.service -t " .. svc .. " -- batterynotify.lua"
 hc.start.applet_network_manager =
     "hyde-shell app -u " .. unt .. "-network-manager-applet.service -t " .. svc .. " -- nm-applet --indicator"
-hc.start.applet_removable_media =
-    "hyde-shell app -u " ..
-    unt .. "-removable-media-applet.service -t " .. svc .. " -- udiskie --no-automount --smart-tray"
 hc.start.applet_bluetooth =
     "hyde-shell app -u " .. unt .. "-bluetooth-applet.service -t " .. svc .. " -- blueman-applet"
 hc.start.hyde_config = "hyde-shell app -u " .. unt .. "-config-watcher.service -t " .. svc .. " -- config.lua"

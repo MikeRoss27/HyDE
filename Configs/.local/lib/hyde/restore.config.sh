@@ -10,7 +10,13 @@ deploy_list() {
         ovrWrte=$(awk -F '|' '{print $1}' <<< "$lst")
         bkpFlag=$(awk -F '|' '{print $2}' <<< "$lst")
         pth=$(awk -F '|' '{print $3}' <<< "$lst")
-        pth=$(eval echo "$pth")
+        # ~ and $VAR expansion without eval: a list-file field is untrusted
+        # input (restore.config is directly callable with any list file),
+        # and eval on it would let a crafted field (e.g. containing a
+        # command substitution) run arbitrary code. envsubst only expands
+        # $VAR/${VAR} against the real environment, nothing else.
+        pth="${pth/#\~/$HOME}"
+        pth=$(envsubst <<< "$pth")
         cfg=$(awk -F '|' '{print $4}' <<< "$lst")
         pkg=$(awk -F '|' '{print $5}' <<< "$lst")
         while read -r pkg_chk; do
@@ -60,7 +66,9 @@ deploy_psv() {
         fi
         ctlFlag=$(awk -F '|' '{print $1}' <<< "$lst")
         pth=$(awk -F '|' '{print $2}' <<< "$lst")
-        pth=$(eval "echo $pth")
+        # See deploy_list() above: ~ and $VAR expansion without eval.
+        pth="${pth/#\~/$HOME}"
+        pth=$(envsubst <<< "$pth")
         cfg=$(awk -F '|' '{print $3}' <<< "$lst")
         pkg=$(awk -F '|' '{print $4}' <<< "$lst")
         if [[ $ctlFlag == "I" ]]; then

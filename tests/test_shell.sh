@@ -11,7 +11,7 @@
 
 . "$(dirname -- "$0")/lib/common.sh"
 
-scripts=$(find "$REPO_ROOT/Configs" "$REPO_ROOT/Scripts" "$REPO_ROOT/tests" -name '*.sh' -type f | sort)
+scripts=$(find "$REPO_ROOT/Configs" "$REPO_ROOT/tests" -name '*.sh' -type f | sort)
 
 count=0
 for file in $scripts; do

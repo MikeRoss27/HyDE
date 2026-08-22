@@ -80,12 +80,15 @@ key="${AMD}${INTEL}${NOUVEAU}${NVIDIA}"
 case "$key" in
 0101)
   GPU_SETUP="hybrid-intel-nvidia"
-  export __GLX_VENDOR_LIBRARY_NAME=nvidia
-  export VK_LAYER_NV_optimus=1
+  # Intel stays the default/session-wide GPU: __GLX_VENDOR_LIBRARY_NAME is
+  # deliberately left unset so GLX defaults to Mesa/Intel instead of being
+  # forced onto NVIDIA. NVIDIA is reserved for explicit per-app offload via
+  # `hyde-shell gpu-offload <command>` (sets __GLX_VENDOR_LIBRARY_NAME=nvidia
+  # + __NV_PRIME_RENDER_OFFLOAD only for that one process).
   # Let VA-API auto-detect between Intel iHD/i965
   # GBM_BACKEND=nvidia-drm removed - optional and can cause Firefox crashes
   if [ "$NVIDIA_VAAPI" = "1" ]; then
-    export NVD_BACKEND=direct # Requires 'libva-nvidia-driver' package
+    export NVD_BACKEND=direct # Requires 'libva-nvidia-driver' package, only used when offload explicitly requests NVIDIA VA-API
     # Let applications auto-detect VA-API driver (nvidia vs iHD)
   fi
   ;;

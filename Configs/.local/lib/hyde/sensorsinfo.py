@@ -63,7 +63,13 @@ def format_columns(data, max_entries_per_column=15):
 
 
 PAGE_SIZE = 5
-PAGE_FILE = "/tmp/sensorinfo_page"
+# Per-user runtime dir instead of shared /tmp: a predictable /tmp filename is
+# a classic symlink/race target on a multi-user host, and every other HyDE
+# script (e.g. cava.py) already keeps its scratch files under here.
+RUNTIME_DIR = os.path.join(os.getenv("XDG_RUNTIME_DIR", os.path.join("/run/user", str(os.getuid()))), "hyde")
+os.makedirs(RUNTIME_DIR, exist_ok=True)
+PAGE_FILE = os.path.join(RUNTIME_DIR, "sensorinfo_page")
+TOOLTIP_FILE = os.path.join(RUNTIME_DIR, "sensorinfo")
 
 
 def get_current_page(total_pages):
@@ -200,7 +206,7 @@ def get_sensor_data(result_sensors, page=0):
 
     tooltip = "\n".join(tooltip_parts)
 
-    with open("/tmp/sensorinfo", "w", encoding="utf-8") as f:
+    with open(TOOLTIP_FILE, "w", encoding="utf-8") as f:
         f.write(tooltip)
 
     return {"text": text, "tooltip": tooltip}

@@ -33,7 +33,8 @@ load_search_engines() {
             key = trim($2);
             url = trim($3);
             if (key != "" && url != "") {
-                #! Escape double quotes and backslashes in url and icon for safe shell eval
+                #! Escape double quotes and backslashes in key, url and icon for safe shell eval
+                gsub(/["\\]/, "\\\\&", key);
                 gsub(/["\\]/, "\\\\&", url);
                 gsub(/["\\]/, "\\\\&", icon);
                 print "SITES[\"" key "\"]=\"" url "\""

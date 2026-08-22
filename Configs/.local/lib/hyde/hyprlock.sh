@@ -82,8 +82,21 @@ mpris_thumb() {
     artUrl=$(playerctl -p "$player" metadata --format '{{mpris:artUrl}}')
     [ "$artUrl" == "$(cat "$THUMB".lnk)" ] && [ -f "$THUMB".png ] && exit 0
     echo "$artUrl" >"$THUMB".lnk
-    curl -Lso "$THUMB.art" "$artUrl"
-    magick "$THUMB.art" -quality 50 "$THUMB.png"
+    # MPRIS metadata (including artUrl) can be set by any unprivileged
+    # process in the session, not just the real media player. Only a local
+    # file:// URI is trusted here: fetching an arbitrary http(s) URL on
+    # every lock would be an attacker-triggered network fetch feeding
+    # unvalidated remote content straight into ImageMagick. Anything else
+    # is skipped rather than downloaded.
+    rm -f "$THUMB.art"
+    case "$artUrl" in
+        file://*)
+            art_path="${artUrl#file://}"
+            art_path="$(printf '%b' "${art_path//%/\\x}")"
+            [ -f "$art_path" ] && cp -f "$art_path" "$THUMB.art"
+            ;;
+    esac
+    [ -f "$THUMB.art" ] && magick "$THUMB.art" -quality 50 "$THUMB.png"
     reload_hyprlock
 }
 fn_cava() {
