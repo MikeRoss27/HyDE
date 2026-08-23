@@ -46,6 +46,9 @@ hc.start.blue_light_filter_daemon =
 hc.start.wallpaper =
     "hyde-shell app -u " .. unt .. "-wallpaper.service -t " .. svc .. " -- wallpaper.sh --start --global"
 hc.start.bar = "hyde-shell app -u " .. unt .. "-bar.scope -t " .. scp .. " -- waybar.py --watch" -- waybar.py injects it itself as -u $unt.service :- therefore we use scope here to avoid conflicts
+hc.start.taskbar = "hyde-shell app -u " .. unt .. "-taskbar.service -t " .. svc ..
+    " -- waybar -c " .. os.getenv("XDG_CONFIG_HOME") .. "/waybar/config-taskbar.jsonc -s " ..
+    os.getenv("XDG_CONFIG_HOME") .. "/waybar/style-taskbar.css"
 hc.start.notifications = "hyde-shell app -u " .. unt .. "-notifications.service -t " .. svc .. " -- swaync"
 hc.start.battery_notify = "hyde-shell app -u " .. unt .. "-battery-notify.service -t " .. svc .. " -- batterynotify.lua"
 hc.start.applet_network_manager =

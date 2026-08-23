@@ -44,6 +44,33 @@ end
 -- Other Lua files next to this one can be pulled in with require("name").
 
 -- ============================================================================
+-- Monitors
+-- ============================================================================
+
+-- HDMI-A-1 (external, main) sits physically to the left on the desk, eDP-1
+-- (laptop panel) to the right. Hyprland's auto-arrangement put eDP-1 at 0x0
+-- instead, so moving a window "left" from the external monitor went to the
+-- laptop panel even though it sits to the right in real life. Swapped here
+-- to match physical layout.
+hl.monitor({ output = "HDMI-A-1", mode = "1920x1080@60", position = "0x0", scale = 1 })
+hl.monitor({ output = "eDP-1", mode = "1920x1080@144", position = "1920x0", scale = 1 })
+
+-- ============================================================================
+-- Workspace <-> monitor binding
+-- ============================================================================
+
+-- Without this, workspace IDs are shared globally and SUPER+<N> jumps to
+-- whichever monitor that workspace last lived on, even if it isn't the one
+-- you're currently looking at. Pin 1-5 to the external monitor and 6-10 to
+-- the laptop panel so SUPER+<N> always stays on the monitor you're on.
+for i = 1, 5 do
+	hl.workspace_rule({ workspace = tostring(i), monitor = "HDMI-A-1", default = (i == 1) })
+end
+for i = 6, 10 do
+	hl.workspace_rule({ workspace = tostring(i), monitor = "eDP-1", default = (i == 6) })
+end
+
+-- ============================================================================
 -- Input
 -- ============================================================================
 

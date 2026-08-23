@@ -1,0 +1,43 @@
+/* Modern floating taskbar - open windows dock, bottom of screen */
+
+@import "theme.css";
+
+* {
+  font-family: "JetBrainsMono Nerd Font", sans-serif;
+  font-size: 14px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: transparent;
+}
+
+#taskbar {
+  background: alpha(@main-bg, 0.75);
+  border: 1px solid alpha(@main-fg, 0.3);
+  border-radius: 18px;
+  padding: 3px 8px;
+}
+
+#taskbar button {
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 4px 10px;
+  margin: 2px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+#taskbar button.no-margin-padding {
+  margin: 2px;
+  padding: 4px 10px;
+}
+
+#taskbar button:hover {
+  background: alpha(@main-fg, 0.14);
+}
+
+#taskbar button.active {
+  background: alpha(@main-fg, 0.22);
+  box-shadow: 0 0 10px alpha(@main-fg, 0.55);
+}
