@@ -272,6 +272,15 @@ cxa() {
 # Starship
 # -----------------------------------------------------------------------------
 
+# The system-wide /etc/zsh/zshrc (grml-zsh-config) activates its own prompt
+# theme before this file loads. Its precmd hook (prompt_grml_precmd)
+# reassigns $PROMPT on every single command, silently clobbering whatever
+# starship sets up below - starship's own precmd hook only tracks command
+# duration/status, it never re-assigns $PROMPT itself (it relies on nothing
+# else touching it after init). `prompt off` removes grml's theme hooks via
+# zsh's own prompt-theme API before starship installs its own.
+prompt off
+
 if (( $+commands[starship] )); then
     eval "$(starship init zsh)"
 fi
