@@ -260,10 +260,7 @@ revert_colors=0
     grep -q "$dcol_mode" <<<"$(get_hyprConf "COLOR_SCHEME")" || revert_colors=1
 }
 export revert_colors
-if ! load_dconf_kdeglobals; then
-    print_log -sec "wallbash" -err "colors" "load_dconf_kdeglobals failed (see color/hypr.sh output above) - aborting before rendering wallbash templates with an incomplete colour/theme environment"
-    exit 1
-fi
+load_dconf_kdeglobals
 export GTK_THEME GTK_ICON CURSOR_THEME COLOR_SCHEME
 WALLBASH_DIRS=""
 for dir in "${wallbashDirs[@]}"; do
