@@ -1175,7 +1175,7 @@ description = "Bar."
 type = "string"
 
 [properties."desktop.start".properties.notifications]
-default = "hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-notifications.service -t service -- dunst"
+default = "hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-notifications.service -t service -- swaync"
 description = "Notification daemon."
 type = "string"
 

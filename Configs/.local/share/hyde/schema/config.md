@@ -161,7 +161,7 @@ Generic desktop autostart configuration. Use this header instead of hyprland-sta
 | dbus_share_picker | DBus share picker (for XDG portal / XDPH). | dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP XDG_CONFIG_HOME QT_QPA_PLATFORMTHEME |
 | idle_daemon | Idle daemon. | hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-idle.service -t service -- hypridle |
 | image_clipboard | Image clipboard daemon. | hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-image-clipboard.service -t service wl-paste --type image --watch cliphist store |
-| notifications | Notification daemon. | hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-notifications.service -t service -- dunst |
+| notifications | Notification daemon. | hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-notifications.service -t service -- swaync |
 | systemd_share_picker | Systemd share picker (for XDG portal / XDPH). | systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP XDG_CONFIG_HOME QT_QPA_PLATFORMTHEME |
 | text_clipboard | Text clipboard daemon. | hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-text-clipboard.service -t service wl-paste --type text --watch cliphist store |
 | wallpaper | Wallpaper script. | hyde-shell app -u hyde-$XDG_SESSION_DESKTOP-wallpaper.service -t service -- wallpaper.sh --start --global |

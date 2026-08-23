@@ -75,14 +75,24 @@ TOOLTIP_FILE = os.path.join(RUNTIME_DIR, "sensorinfo")
 def get_current_page(total_pages):
     if os.path.exists(PAGE_FILE):
         with open(PAGE_FILE, "r", encoding="utf-8") as f:
-            page = int(f.read().strip())
+            try:
+                page = int(f.read().strip())
+            except ValueError:
+                return 0
             return page % total_pages
     return 0
 
 
 def save_current_page(page):
-    with open(PAGE_FILE, "w", encoding="utf-8") as f:
+    # Waybar runs one of these loops per output, all sharing PAGE_FILE - an
+    # in-place write() is observable mid-truncate by a concurrent reader on
+    # another output's loop (empty read -> ValueError). Write to a sibling
+    # temp file and os.replace() so readers only ever see a fully-old or
+    # fully-new file, never a partial one.
+    tmp_path = f"{PAGE_FILE}.{os.getpid()}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         f.write(str(page))
+    os.replace(tmp_path, PAGE_FILE)
 
 
 def get_temp_color(temp):

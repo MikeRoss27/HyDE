@@ -47,23 +47,6 @@ description = "Zsh Aliases"
 path = "$ZDOTDIR/user.zsh"
 
 
-[dunst]
-description = "Dunst Notification Daemon"
-icon = "🔔"
-
-[dunst.files.main]
-description = "Dunst Configuration"
-path = "${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunstrc"
-pre_hook = ["bash", "-c", "echo 'Editing Dunst config...'"]
-post_hook = ["bash", "-c", "killall dunst && dunst & disown"]
-
-[dunst.files.user]
-description = "Dunst Configuration"
-path = "${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunst.conf"
-pre_hook = ["bash", "-c", "echo 'Editing Dunst config...'"]
-post_hook = ["bash", "-c", "killall dunst && dunst & disown"]
-
-
 [hyprland]
 description = "Hyprland Window Manager"
 icon = "🪟"

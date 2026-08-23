@@ -1,6 +1,7 @@
 {
   "custom/cava": {
     "format": "{0}",
+    "exec-if": "command -v cava >/dev/null 2>&1",
     "exec": "hyde-shell cava.py waybar --json",
     "restart-interval": 1,
     "hide-empty": true,
