@@ -1,429 +1,196 @@
 "$schema" = "https://starship.rs/config-schema.json"
 
+# =============================================================================
+# Catppuccin Mocha powerline — segmented pill prompt.
+# Base structure from `starship preset catppuccin-powerline`, extended with
+# this machine's actual needs (Lua for the Hyprland config, kubernetes only
+# when a project really uses it, color-coded git status, sudo/battery/jobs
+# indicators) instead of the ~40 language modules nobody here touches.
+# =============================================================================
+
 add_newline = true
 scan_timeout = 30
 command_timeout = 1000
 
-# =============================================================================
-# PROMPT
-# =============================================================================
+palette = "catppuccin_mocha"
 
 format = """
+[](fg:red)\
+$sudo\
 $os\
 $username\
-$hostname\
+[](bg:peach fg:red)\
 $directory\
+[](bg:yellow fg:peach)\
 $git_branch\
 $git_commit\
 $git_state\
 $git_status\
-$fill\
-$sudo\
-$battery\
+[](fg:yellow bg:green)\
+$c\
+$rust\
+$golang\
+$nodejs\
+$bun\
+$python\
+$lua\
+[](fg:green bg:sapphire)\
+$docker_context\
+$kubernetes\
+$direnv\
+[](fg:sapphire bg:lavender)\
+$time\
+[ ](fg:lavender)\
 $cmd_duration\
-$status\
 $line_break\
 $character"""
 
-# Tous les modules non utilisés à gauche peuvent apparaître contextuellement
-# à droite. Plus besoin de maintenir une liste gigantesque à la main.
-right_format = "$all"
+right_format = """
+$battery\
+$jobs\
+"""
 
 # =============================================================================
-# CORE
+# LEFT SEGMENT — OS / user / sudo
 # =============================================================================
-
-[fill]
-symbol = " "
-
-[os]
-disabled = false
-format = "[$symbol](bold blue) "
-
-[username]
-show_always = false
-format = "[$user]($style) "
-style_user = "bold cyan"
-style_root = "bold red"
-
-[hostname]
-ssh_only = true
-ssh_symbol = " "
-format = "[$ssh_symbol$hostname]($style) "
-style = "bold dimmed cyan"
-
-[directory]
-style = "bold blue"
-format = "[$path]($style)[$read_only]($read_only_style) "
-read_only = " 󰌾"
-read_only_style = "bold red"
-
-truncation_length = 4
-truncation_symbol = "…/"
-truncate_to_repo = true
-
-home_symbol = "~"
-
-# Rend la racine d'un repo immédiatement identifiable.
-repo_root_style = "bold cyan"
-
-[directory.substitutions]
-"Documents" = "󰈙 "
-"Downloads" = " "
-"Music" = " "
-"Pictures" = " "
-"Desktop" = "󰇄 "
-"dev" = "󰲋 "
-
-# =============================================================================
-# GIT
-# =============================================================================
-
-[git_branch]
-symbol = " "
-style = "bold purple"
-format = "[$symbol$branch(:$remote_branch)]($style) "
-truncation_length = 36
-truncation_symbol = "…"
-
-[git_commit]
-tag_symbol = "  "
-tag_disabled = false
-
-only_detached = true
-commit_hash_length = 7
-
-format = "[ $hash$tag]($style) "
-style = "yellow"
-
-[git_state]
-style = "bold yellow"
-format = '\([$state( $progress_current/$progress_total)]($style)\) '
-
-[git_status]
-style = ""
-format = "([$all_status$ahead_behind]($style) )"
-
-# Rouge = problème
-conflicted = "[=${count}](bold red) "
-deleted = "[✘${count}](bold red) "
-
-# Jaune = modifications locales
-modified = "[!${count}](bold yellow) "
-behind = "[⇣${count}](bold yellow) "
-
-# Vert = prêt / staged
-staged = "[+${count}](bold green) "
-
-# Cyan = mouvement / synchronisation
-ahead = "[⇡${count}](bold cyan) "
-renamed = "[»${count}](bold cyan) "
-stashed = "[*${count}](bold cyan) "
-
-# Neutre
-untracked = "[?${count}](dimmed white) "
-
-# Cas spécial : divergence
-diverged = "[⇕⇡${ahead_count}⇣${behind_count}](bold purple) "
-
-# =============================================================================
-# COMMAND
-# =============================================================================
-
-[cmd_duration]
-min_time = 1500
-show_milliseconds = false
-style = "yellow"
-format = "[󰔟 $duration]($style) "
-
-[status]
-disabled = false
-
-# Utilise les symboles spécialisés pour certains exit codes.
-map_symbol = true
-
-symbol = " "
-success_symbol = ""
-
-not_executable_symbol = "󰂭 "
-not_found_symbol = "󰍉 "
-sigint_symbol = "󰚌 "
-signal_symbol = "󱑽 "
-
-format = "[$symbol$status]($style) "
-style = "bold red"
-
-[character]
-success_symbol = "[❯](bold green)"
-error_symbol = "[❯](bold red)"
-
-vimcmd_symbol = "[❮](bold green)"
-vimcmd_replace_one_symbol = "[❮](bold purple)"
-vimcmd_replace_symbol = "[❮](bold purple)"
-vimcmd_visual_symbol = "[❮](bold yellow)"
-
-# =============================================================================
-# SYSTEM
-# =============================================================================
-
-[battery]
-full_symbol = "󰁹 "
-charging_symbol = "󰂄 "
-discharging_symbol = "󰂃 "
-unknown_symbol = "󰂑 "
-empty_symbol = "󰂎 "
-
-format = "[$symbol$percentage]($style) "
-
-[[battery.display]]
-threshold = 15
-style = "bold red"
-
-[[battery.display]]
-threshold = 30
-style = "bold yellow"
-
-[memory_usage]
-disabled = true
-symbol = "󰍛 "
 
 [sudo]
 disabled = false
 symbol = " "
 format = "[$symbol]($style)"
-style = "bold red"
+style = "bold fg:red"
 
-[shlvl]
-disabled = true
-symbol = "󰹍 "
+[os]
+disabled = false
+style = "bg:red fg:crust"
+format = "[ $symbol ]($style)"
 
-[jobs]
-symbol = "󰜎 "
-style = "bold dimmed cyan"
+[os.symbols]
+Arch = "󰣇"
+Linux = "󰌽"
+Macos = "󰀵"
+Windows = ""
 
-# =============================================================================
-# JS / TS
-# =============================================================================
-
-[bun]
-symbol = " "
-style = "bold white"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
-
-[nodejs]
-symbol = " "
-style = "bold green"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
-
-[deno]
-symbol = " "
-style = "green"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
+[username]
+show_always = true
+style_user = "bg:red fg:crust"
+style_root = "bg:red fg:crust"
+format = "[ $user]($style)"
 
 # =============================================================================
-# RUST
+# DIRECTORY
 # =============================================================================
 
-[rust]
-symbol = "󱘗 "
-style = "bold red"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
+[directory]
+style = "bg:peach fg:crust"
+format = "[ $path ]($style)"
+truncation_length = 4
+truncation_symbol = "…/"
+truncate_to_repo = true
+home_symbol = "~"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Desktop" = "󰇄 "
+"dev" = "󰲋 "
 
 # =============================================================================
-# PYTHON
+# GIT — status colors kept semantic (red=problem, yellow=local changes,
+# green=staged, cyan=sync movement, purple=diverged) inside the yellow pill.
 # =============================================================================
 
-[python]
-symbol = " "
-style = "bold yellow"
-format = '[$symbol${pyenv_prefix}${version}( \($virtualenv\))]($style) '
-version_format = "${major}.${minor}"
+[git_branch]
+symbol = ""
+style = "bg:yellow"
+format = "[[ $symbol $branch(:$remote_branch) ](fg:crust bg:yellow)]($style)"
+truncation_length = 24
+truncation_symbol = "…"
 
-[conda]
-symbol = " "
+[git_commit]
+only_detached = true
+tag_symbol = "  "
+tag_disabled = false
+commit_hash_length = 7
+style = "bg:yellow"
+format = "[[  $hash$tag ](fg:crust bg:yellow)]($style)"
 
-[pixi]
-symbol = "󰏗 "
+[git_state]
+style = "bg:yellow"
+format = '[[\($state( $progress_current/$progress_total)\) ](fg:crust bg:yellow)]($style)'
+
+[git_status]
+style = "bg:yellow"
+format = "[[($all_status$ahead_behind )](bg:yellow)]($style)"
+conflicted = "[=${count}](bold red) "
+deleted = "[✘${count}](bold red) "
+modified = "[!${count}](bold yellow) "
+behind = "[⇣${count}](bold yellow) "
+staged = "[+${count}](bold green) "
+ahead = "[⇡${count}](bold cyan) "
+renamed = "[»${count}](bold cyan) "
+stashed = "[*${count}](bold cyan) "
+untracked = "[?${count}](dimmed fg:crust) "
+diverged = "[⇕⇡${ahead_count}⇣${behind_count}](bold fg:mauve) "
 
 # =============================================================================
-# C / C++
+# LANGUAGES — only what's actually used on this machine.
 # =============================================================================
 
 [c]
 symbol = " "
-style = "bold blue"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
+style = "bg:green"
+format = "[[ $symbol( $version) ](fg:crust bg:green)]($style)"
 
-[cpp]
-disabled = false
-symbol = " "
-style = "bold blue"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
-
-[cmake]
-symbol = " "
-style = "blue"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
-
-# =============================================================================
-# OTHER LANGUAGES
-# =============================================================================
+[rust]
+symbol = "󱘗"
+style = "bg:green"
+format = "[[ $symbol( $version) ](fg:crust bg:green)]($style)"
 
 [golang]
-symbol = " "
-style = "bold cyan"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
+symbol = ""
+style = "bg:green"
+format = "[[ $symbol( $version) ](fg:crust bg:green)]($style)"
 
-[zig]
-symbol = " "
-style = "bold yellow"
-format = "[$symbol$version]($style) "
-version_format = "${major}.${minor}"
+[nodejs]
+symbol = ""
+style = "bg:green"
+format = "[[ $symbol( $version) ](fg:crust bg:green)]($style)"
+
+[bun]
+symbol = ""
+style = "bg:green"
+format = "[[ $symbol( $version) ](fg:crust bg:green)]($style)"
+
+[python]
+symbol = ""
+style = "bg:green"
+format = '[[ $symbol( $version)(\(#$virtualenv\)) ](fg:crust bg:green)]($style)'
 
 [lua]
-symbol = " "
-style = "bold blue"
-version_format = "${major}.${minor}"
-
-[java]
-symbol = " "
-style = "bold red"
-version_format = "${major}.${minor}"
-
-[kotlin]
-symbol = " "
-style = "bold purple"
-version_format = "${major}.${minor}"
-
-[dotnet]
-symbol = " "
-style = "bold purple"
-version_format = "${major}.${minor}"
-
-[php]
-symbol = " "
-style = "bold purple"
-version_format = "${major}.${minor}"
-
-[ruby]
-symbol = " "
-style = "bold red"
-version_format = "${major}.${minor}"
-
-[swift]
-symbol = " "
-style = "bold red"
-version_format = "${major}.${minor}"
-
-[dart]
-symbol = " "
-
-[elixir]
-symbol = " "
-
-[elm]
-symbol = " "
-
-[erlang]
-symbol = " "
-
-[gleam]
-symbol = " "
-
-[haskell]
-symbol = " "
-
-[haxe]
-symbol = " "
-
-[julia]
-symbol = " "
-
-[ocaml]
-symbol = " "
-
-[odin]
-symbol = "󰟢 "
-
-[mojo]
-symbol = "󰈸 "
-
-[nim]
-symbol = " "
-
-[vlang]
-symbol = " "
-
-[typst]
-symbol = " "
-
-[scala]
-symbol = " "
-
-[solidity]
-symbol = " "
-
-[perl]
-symbol = " "
-
-[raku]
-symbol = "󱖊 "
-
-[rlang]
-symbol = "󰟔 "
-
-[crystal]
-symbol = " "
-
-[fennel]
-symbol = " "
-
-[fortran]
-symbol = " "
-
-[cobol]
-symbol = " "
-
-[purescript]
-symbol = " "
-
-[red]
-symbol = "󱍼 "
+symbol = ""
+style = "bg:green"
+format = "[[ $symbol( $version) ](fg:crust bg:green)]($style)"
 
 # =============================================================================
-# DEVOPS / CONTAINERS
+# DEVOPS — kubernetes only shows up when a project actually looks like it
+# uses it (no clutter on every random directory).
 # =============================================================================
 
 [docker_context]
-symbol = " "
-style = "bold blue"
-format = "[$symbol$context]($style) "
+symbol = ""
+style = "bg:sapphire"
+format = "[[ $symbol $context ](fg:crust bg:sapphire)]($style)"
 only_with_files = true
 
-[container]
-symbol = " "
-style = "bold red"
-format = "[$symbol$name]($style) "
-
 [kubernetes]
-symbol = "󱃾 "
-style = "bold cyan"
-format = '[$symbol$context( \($namespace\))]($style) '
-
+symbol = "󱃾"
+style = "bg:sapphire"
+format = '[[ $symbol $context(\($namespace\)) ](fg:crust bg:sapphire)]($style)'
 disabled = false
-
-# Kubernetes activé seulement quand le projet semble réellement l'utiliser.
-# Sans ces règles, Starship l'affiche partout dès qu'il est activé.
 detect_env_vars = ["KUBECONFIG"]
-
 detect_files = [
   "kustomization.yaml",
   "kustomization.yml",
@@ -431,178 +198,103 @@ detect_files = [
   "helmfile.yaml",
   "helmfile.yml",
 ]
-
-detect_folders = [
-  "k8s",
-  "kubernetes",
-  "charts",
-]
-
-[terraform]
-symbol = " "
-style = "bold purple"
-format = "[$symbol$workspace]($style) "
-
-[helm]
-symbol = " "
-
-[vagrant]
-symbol = " "
-
-[singularity]
-symbol = " "
-
-[spack]
-symbol = " "
-
-# =============================================================================
-# CLOUD
-# =============================================================================
-
-[aws]
-symbol = " "
-format = '[$symbol($profile)(\($region\))]($style) '
-style = "bold yellow"
-
-[azure]
-disabled = false
-symbol = " "
-style = "bold blue"
-format = "[$symbol($subscription)]($style) "
-
-[gcloud]
-symbol = "󱇶 "
-style = "bold blue"
-
-[openstack]
-symbol = " "
-
-# =============================================================================
-# BUILD / TOOLING
-# =============================================================================
-
-[package]
-symbol = "󰏗 "
-style = "bold yellow"
-format = "[$symbol$version]($style) "
-
-version_format = "${major}.${minor}.${patch}"
-
-# Important pour les package.json avec `"private": true`.
-display_private = true
-
-[buf]
-symbol = " "
-
-[gradle]
-symbol = " "
-
-[maven]
-symbol = " "
-
-[meson]
-symbol = "󰔷 "
-
-[xmake]
-symbol = " "
+detect_folders = ["k8s", "kubernetes", "charts"]
 
 [direnv]
 disabled = false
-symbol = " "
-format = "[$symbol$loaded/$allowed]($style) "
-style = "bold cyan"
-
-[nix_shell]
-symbol = " "
-
-[guix_shell]
-symbol = " "
-
-[opa]
-symbol = " "
-
-[pulumi]
-symbol = " "
-
-[nats]
-symbol = " "
-
-[netns]
-symbol = "󰛳 "
+symbol = ""
+style = "bg:sapphire"
+format = "[[ $symbol $loaded/$allowed ](fg:crust bg:sapphire)]($style)"
 
 # =============================================================================
-# OTHER VCS
+# TIME / COMMAND DURATION
 # =============================================================================
 
-[fossil_branch]
-symbol = " "
+[time]
+disabled = false
+time_format = "%R"
+style = "bg:lavender"
+format = "[[  $time ](fg:crust bg:lavender)]($style)"
 
-[hg_branch]
-symbol = " "
-
-[pijul_channel]
-symbol = " "
+[cmd_duration]
+min_time = 1500
+show_milliseconds = false
+style = "fg:lavender"
+format = "[󰔟 $duration]($style) "
 
 # =============================================================================
-# OS ICONS
+# PROMPT CHARACTER
 # =============================================================================
 
-[os.symbols]
-AIX = " "
-AlmaLinux = " "
-Alpaquita = " "
-Alpine = " "
-ALTLinux = " "
-Amazon = " "
-Android = " "
-AOSC = " "
-Arch = " "
-Artix = " "
-Bluefin = " "
-CachyOS = " "
-CentOS = " "
-Debian = " "
-DragonFly = " "
-Elementary = " "
-Emscripten = " "
-EndeavourOS = " "
-Fedora = " "
-FreeBSD = " "
-Garuda = " "
-Gentoo = " "
-HardenedBSD = "󰞌 "
-Illumos = " "
-InstantOS = " "
-Ios = "󰀷 "
-Kali = " "
-Linux = " "
-Mabox = " "
-Macos = " "
-Manjaro = " "
-Mariner = " "
-MidnightBSD = " "
-Mint = " "
-NetBSD = " "
-NixOS = " "
-Nobara = " "
-OpenBSD = " "
-OpenCloudOS = " "
-openEuler = " "
-openSUSE = " "
-OracleLinux = "󰺡 "
-PikaOS = " "
-Pop = " "
-Raspbian = " "
-Redhat = "󱄛 "
-RedHatEnterprise = "󱄛 "
-Redox = "󰀘 "
-RockyLinux = " "
-Solus = " "
-SUSE = " "
-Ubuntu = " "
-Ultramarine = " "
-Unknown = " "
-Uos = " "
-Void = " "
-Windows = "󰍲 "
-Zorin = " "
+[line_break]
+disabled = false
+
+[character]
+success_symbol = "[❯](bold fg:green)"
+error_symbol = "[❯](bold fg:red)"
+vimcmd_symbol = "[❮](bold fg:green)"
+vimcmd_replace_one_symbol = "[❮](bold fg:mauve)"
+vimcmd_replace_symbol = "[❮](bold fg:mauve)"
+vimcmd_visual_symbol = "[❮](bold fg:yellow)"
+
+# =============================================================================
+# RIGHT SIDE — unobtrusive, no pills.
+# =============================================================================
+
+[battery]
+format = "[$symbol$percentage]($style) "
+full_symbol = "󰁹 "
+charging_symbol = "󰂄 "
+discharging_symbol = "󰂃 "
+unknown_symbol = "󰂑 "
+empty_symbol = "󰂎 "
+
+[[battery.display]]
+threshold = 15
+style = "bold fg:red"
+
+[[battery.display]]
+threshold = 30
+style = "bold fg:yellow"
+
+[jobs]
+symbol = "󰜎 "
+style = "fg:sapphire"
+
+[memory_usage]
+disabled = true
+
+[shlvl]
+disabled = true
+
+# =============================================================================
+# PALETTE — Catppuccin Mocha (matches this fork's default wallbash/rofi tones)
+# =============================================================================
+
+[palettes.catppuccin_mocha]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"
