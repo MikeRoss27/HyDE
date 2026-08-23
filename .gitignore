@@ -1,6 +1,5 @@
 Scripts/install_pkg.lst
 .vscode
-user
 Scripts/pkg_black.lst
 Scripts/pkg_user.lst
 *__pycache__*

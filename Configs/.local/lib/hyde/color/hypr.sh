@@ -9,6 +9,10 @@ cacheDir="${cacheDir:-$XDG_CACHE_HOME/hyde}"
 HYDE_THEME="${HYDE_THEME:-}"
 HYDE_THEME_DIR="${HYDE_THEME_DIR:-$confDir/hyde/themes/$HYDE_THEME}"
 enableWallDcol="${enableWallDcol:-0}"
+if ! command -v hyq &>/dev/null; then
+    print_log -sec "wallbash" -err "hyq" "not found on PATH - cannot read $HYDE_THEME_DIR/hypr.theme (GTK/icon/cursor/font theme vars would silently stay empty otherwise)"
+    return 1 2>/dev/null || exit 1
+fi
 eval "$(hyq "$HYDE_THEME_DIR/hypr.theme" \
     --export env \
     -Q '$GTK_THEME[string]' \

@@ -1,0 +1,19 @@
+# installer/theme.manifest
+#
+# Canonical "complete theme" manifest for a directory under
+# $HYDE_CONFIG_HOME/themes/<name>/. A theme directory is only considered
+# complete for this installer's purposes if every REQUIRED entry exists.
+# Directory existence alone (`themes/<name>/` present) is NOT a valid
+# completeness test - see installer/runtime.sh theme_check_complete().
+#
+# Format (pipe-delimited, '#' comments and blank lines ignored):
+#   path | REQUIRED|OPTIONAL | consumed-by | notes
+#
+# path is relative to the theme directory. A trailing '/' means a
+# directory (checked with -d), otherwise checked with -e (file or symlink).
+
+wall.set     | REQUIRED | color.set.sh (theme.switch.sh entry point), wallpaper.sh, globalcontrol.sh:get_themes | symlink to the active wallpaper; color.set.sh's dcol/hash cache and the seed for wallbash template rendering are derived from this
+hypr.theme   | REQUIRED | color/hypr.sh (hyq), theme.switch.sh (hyq, load_hypr_variables), globalcontrol.sh:get_hyprConf, waybar.py:get_hypr_theme_setting, wallbash/scripts/swaync.sh | hyprlang-syntax ($KEY = value) theme metadata queried by hyq; see installer/templates/hypr.theme.default for the canonical minimal content this installer writes
+.sort        | OPTIONAL | globalcontrol.sh:get_themes | numeric theme-list ordering; defaults to "0" when absent, get_themes never fails without it
+wallpapers/  | OPTIONAL | theme.switch.sh (fallback wall.set relink if the existing symlink target is missing) | only consulted when wall.set is a dangling link; a theme that ships wall.set pointing at a real file never needs this
+theme.dcol   | OPTIONAL | color.set.sh (dominant-colour override) | when absent, colours are derived from the wallpaper itself instead - documented, intentional fallback, never an error

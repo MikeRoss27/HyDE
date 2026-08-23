@@ -5,7 +5,16 @@ package.path = package.path .. ";" .. root .. "../?.lua;" .. root .. "../?/init.
 require("luautils.init")
 
 local xdg = require("luautils.xdg")
-local lgi = require("lgi")
+local lgi_ok, lgi_or_err = pcall(require, "lgi")
+if not lgi_ok then
+    io.stderr:write(
+        "dconf.lua: lgi unavailable (" .. tostring(lgi_or_err) .. "); " ..
+        "skipping GTK/GNOME dconf sync (gtk-theme, icon-theme, fonts, cursor). " ..
+        "See docs/personal-fork/ARCHITECTURE.md for the Lua/lgi compatibility note.\n"
+    )
+    os.exit(0)
+end
+local lgi = lgi_or_err
 local Gio = lgi.Gio
 
 local function _s(v)

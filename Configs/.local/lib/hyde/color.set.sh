@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+# GNU parallel (used below to render wallbash templates) runs each job
+# under $SHELL by default. This script exports bash functions for parallel
+# to call (fn_wallbash and friends) - those exports are meaningless to any
+# non-bash shell, so on a system where the user's login shell is zsh/fish
+# every parallel job silently fails to find the function and nothing gets
+# rendered (no visible error - see docs/personal-fork/ARCHITECTURE.md).
+# Force parallel's job shell to bash regardless of the user's login shell.
+export PARALLEL_SHELL=/bin/bash
+
 [[ $HYDE_SHELL_INIT -ne 1 ]] && eval "$(hyde-shell init)"
 if [[ -n $HYPRLAND_INSTANCE_SIGNATURE ]]; then
     hyprctl eval 'hl.config({misc = {disable_autoreload = true}})'
@@ -20,7 +29,14 @@ rgba_to_rgb() {
 
 load_dconf_kdeglobals() {
     source "$SHARE_DIR/hyde/env-theme"
-    source "$LIB_DIR/hyde/color/hypr.sh"
+
+    # REQUIRED: color/hypr.sh renders $XDG_STATE_HOME/hyde/lua_state/ui.lua,
+    # one of the three files installer/lib.sh:check_hypr_colour_state_complete()
+    # treats as required colour state (see installer/runtime.sh). Being
+    # sourced (not executed), it already `return 1`s itself when hyq is
+    # missing - propagate that as a genuine fatal failure, not the
+    # accidental last-statement return value bug fixed below.
+    source "$LIB_DIR/hyde/color/hypr.sh" || return 1
 
     #? Do not change when users has active plasma session installed
     #? This fixes kde connect and similar app color issues
@@ -41,9 +57,32 @@ load_dconf_kdeglobals() {
         toml_write "$XDG_CONFIG_HOME/kdeglobals" "Colors:Selection" "ForegroundNormal" "$(rgba_to_rgb "${dcol_txt2_rgba:-}")"
 
         toml_write "$XDG_CONFIG_HOME/Kvantum/wallbash/wallbash.kvconfig" '%General' 'reduce_menu_opacity' 0
+    else
+        print_log -sec "wallbash" -stat "skip" "kdeglobals color fix (HYDE_KDEGLOBALS_FIX=0) - KDE/Plasma config is not touched"
     fi
-    lua "$LIB_DIR/hyde/color/dconf.lua"
-    [[ -n $HYPRLAND_INSTANCE_SIGNATURE ]] && lua "$LIB_DIR/hyde/shaders.lua" --reload
+
+    # OPTIONAL: GTK/GNOME dconf sync (gtk-theme/icon-theme/cursor/fonts via
+    # org.gnome.desktop.interface). Produces nothing the wallbash template
+    # pipeline below depends on - that all comes from $dcol_file, already
+    # sourced before this function runs. color/dconf.lua already exits 0
+    # and logs its own warning when lgi is unavailable; this only captures
+    # its exit code to log a clear message on any OTHER failure, and
+    # deliberately does not let it affect this function's return value -
+    # a skipped/failed optional cosmetic step must never abort wallbash
+    # rendering (see docs/personal-fork/ARCHITECTURE.md).
+    if ! lua "$LIB_DIR/hyde/color/dconf.lua"; then
+        print_log -sec "wallbash" -warn "dconf" "GTK/GNOME dconf sync (color/dconf.lua) reported a failure - this is optional cosmetic desktop integration, not required for Hyprland/Waybar/SwayNC colour generation; continuing"
+    fi
+
+    # OPTIONAL: shader reload only makes sense inside a live Hyprland
+    # session (install.sh --repair runs from a plain terminal, so this is
+    # always and correctly skipped there) and is itself cosmetic.
+    if [[ -n $HYPRLAND_INSTANCE_SIGNATURE ]]; then
+        lua "$LIB_DIR/hyde/shaders.lua" --reload ||
+            print_log -sec "wallbash" -warn "shaders" "shader reload failed (non-fatal, cosmetic)"
+    fi
+
+    return 0
 }
 create_wallbash_substitutions() {
     local use_inverted=$1
@@ -221,7 +260,10 @@ revert_colors=0
     grep -q "$dcol_mode" <<<"$(get_hyprConf "COLOR_SCHEME")" || revert_colors=1
 }
 export revert_colors
-load_dconf_kdeglobals
+if ! load_dconf_kdeglobals; then
+    print_log -sec "wallbash" -err "colors" "load_dconf_kdeglobals failed (see color/hypr.sh output above) - aborting before rendering wallbash templates with an incomplete colour/theme environment"
+    exit 1
+fi
 export GTK_THEME GTK_ICON CURSOR_THEME COLOR_SCHEME
 WALLBASH_DIRS=""
 for dir in "${wallbashDirs[@]}"; do
@@ -245,6 +287,7 @@ fi
 render_failed=0
 [ -t 1 ] && "$scrDir/wallbash.print.colors.sh"
 print_log -sec "wallbash" -stat "wallbash directories" " $WALLBASH_DIRS"
+render_failures=0
 if [ "$enableWallDcol" -eq 0 ] && [[ $reload_flag -eq 1 ]]; then
     print_log -sec "wallbash" -stat "apply $dcol_mode colors" "$HYDE_THEME theme"
     mapfile -d '' -t deployList < <(find -H "$HYDE_THEME_DIR" -type f -name "*.theme" -print0)

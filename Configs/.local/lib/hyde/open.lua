@@ -4,7 +4,16 @@ local root = debug.getinfo(1, "S").source:match("^@(.*/)") or "./"
 package.path = package.path .. ";" .. root .. "?.lua;" .. root .. "?/init.lua;"
 local ok_luautils, _ = pcall(require, "luautils.init")
 
-local lgi = require "lgi"
+local lgi_ok, lgi_or_err = pcall(require, "lgi")
+if not lgi_ok then
+    io.stderr:write(
+        "hyde-shell open: lgi unavailable (" .. tostring(lgi_or_err) .. "); " ..
+        "file-opening via GIO/desktop-app-info is disabled. " ..
+        "See docs/personal-fork/ARCHITECTURE.md for the Lua/lgi compatibility note.\n"
+    )
+    os.exit(3)
+end
+local lgi = lgi_or_err
 local Gio = lgi.Gio
 local GLib = lgi.GLib
 

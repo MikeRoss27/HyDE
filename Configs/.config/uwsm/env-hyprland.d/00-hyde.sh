@@ -12,7 +12,7 @@ GDK_SCALE="${GDK_SCALE:-1}"                                          # Set GDK s
 ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}" # Set Electron Ozone Platform Hint to auto, for Electron apps on Wayland
 
 # HyDEs Compositor Configuration
-if [ -z "$HYDE_ACTIVATED" ]; then
+if [ -z "${HYDE_ACTIVATED:-}" ]; then
     for _hyde_activate in \
         "$HOME/.local/lib/hyde/shell/activate" \
         "/usr/local/lib/hyde/shell/activate" \

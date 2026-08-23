@@ -1,0 +1,50 @@
+# installer/deploy.manifest
+#
+# Explicit deployment manifest. Every path here is relative to Configs/ in
+# this repo and is deployed to the same relative path under $HOME. A path
+# ending in '/' is a directory, deployed recursively file-by-file (each
+# file individually backed up/skipped-if-unchanged - see deploy_one in
+# installer/lib.sh). Everything else is a single file.
+#
+# This is intentionally NOT "copy all of Configs/". Configs/ also carries
+# KDE/Dolphin/editor/shell config that must not overwrite the user's
+# existing setup - see CLAUDE.md "Files that must not be changed
+# automatically" and the exclusion list at the bottom of this file.
+
+.config/hypr/
+.config/uwsm/
+.config/hyde/
+.config/waybar/
+.config/rofi/
+.config/swaync/
+.config/systemd/user/swaync.service.d/10-hyde-session-scope.conf
+.config/satty/
+.config/wlogout/
+.config/libinput-gestures.conf
+.config/xdg-terminals.list
+
+.local/bin/hyde-shell
+.local/bin/hydectl
+.local/bin/hyde-ipc
+
+.local/lib/hyde/
+
+.local/share/hypr/
+.local/share/hyde/
+.local/share/waybar/
+.local/share/wallbash/
+.local/share/xdg-desktop-portal/
+.local/share/icons/
+
+# --- deliberately NOT deployed (present under Configs/ but out of scope) ---
+# .config/Code, .config/Code - OSS, .config/VSCodium  - editor state, user-owned
+# .config/Kvantum, .config/qt5ct, .config/qt6ct        - optional Qt theming, not core
+# .config/MangoHud                                      - unrelated to this fork's scope
+# .config/baloofilerc, .config/dolphinrc, .config/kdeglobals - KDE/Plasma, must not touch
+# .config/kio, .local/share/dolphin, .local/share/kio, .local/share/kxmlgui5 - KDE
+# .config/dconf, .config/xsettingsd, .config/gtk-3.0    - desktop-wide, out of scope for now
+# .config/dunst                                          - superseded by swaync (DEPENDENCIES.md)
+# .config/fish, .config/vim, .config/zsh, .config/starship - shell/editor, user-owned
+# .config/spotify-flags.conf, .config/code-flags.conf, .config/codium-flags.conf,
+#   .config/electron-flags.conf                          - unrelated app flags
+# .local/share/fastfetch                                 - optional, not required for Hyprland

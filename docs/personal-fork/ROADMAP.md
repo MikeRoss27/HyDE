@@ -1,5 +1,205 @@
 # Roadmap
 
+## Post-Slice-8 (cont. 3) — Aquamarine "CBackend::create() failed" reclassified as seat conflict, not GPU bug
+
+A follow-up report claimed a *new* backend-creation failure (`CBackend::
+create() failed!`, SIGABRT) below HyDE, distinct from the already-documented
+`#267` SIGSEGV teardown crash, and asked for an `AQ_DRM_DEVICES` backend
+test matrix, GPU-topology diagnostics, and a possible Aquamarine repackage.
+Investigated by live-capturing Aquamarine's runtime log during a
+reproduction and re-reading the full `journalctl --user -u wayland-wm@
+hyprland.desktop.service` transcripts (not just coredump backtraces) for
+the existing SIGSEGV coredumps. Full findings in `docs/personal-fork/
+ARCHITECTURE.md` ("Session update" under "Aquamarine crash"). Summary:
+
+- **The SIGABRT is a test-methodology artifact, not a GPU/EGL/Aquamarine
+  bug.** `Aquamarine`'s DRM backend needs `logind` `TakeControl()` on
+  seat0; every reproduction was launched from a terminal inside the
+  already-active KDE Plasma Wayland session, so `TakeControl()` fails with
+  `EBUSY` (`[libseat] Could not take control of session: Device or
+  resource busy`) before any Intel/NVIDIA/EGL/GBM/modifier code runs.
+  Whether this then aborts (`CBackend::create() failed!`) or silently
+  falls back to Aquamarine's nested Wayland backend (no crash) depends only
+  on whether `WAYLAND_DISPLAY` was inherited from the launching shell —
+  neither outcome is evidence about hybrid-GPU compatibility. **Did not**
+  build the requested `AQ_DRM_DEVICES`/`AQ_MGPU_NO_EXPLICIT`/
+  `AQ_NO_MODIFIERS` probe matrix or touch any Aquamarine/EGL env vars — it
+  would only re-measure the same seat conflict, not real GPU behaviour.
+  **Did not** pursue a custom Aquamarine package/patch for the same reason.
+- **The three most recent SIGSEGV coredumps with a real systemd session
+  unit (`43346`, `48540`, `53055`) are shutdown-only crashes, not startup
+  failures.** Cross-checking each against its unit's journal shows
+  `CBackend::create()` succeeded (systemd `Started Main service for
+  Hyprland` readiness notification, portals/swaync/wireplumber all came up
+  live), and the SIGSEGV happened only after `Stopping Main service for
+  Hyprland…` was already logged — the known `#267`
+  `CDRMRenderer::~CDRMRenderer → eglDestroyContext` exit-time bug, already
+  on file, not a new issue.
+- **`installer/diagnose.sh` gained two read-only sections**: "Seat /
+  session ownership" (reports the active seat0 session/compositor and
+  explains the `EBUSY` mechanism so this doesn't get re-litigated by hand
+  next time) and "Coredump classification" (auto-correlates each
+  `coredumpctl list Hyprland` entry's timestamp against its unit's
+  `Stopping…` journal line to label it shutdown-cosmetic vs.
+  startup-needs-investigation vs. manual-test-expected). Both are pure
+  queries — no launches, no env vars set, no drivers touched.
+- **Open item, not addressed this session (requires the user, not more log
+  archaeology)**: confirm by actually watching a clean login — ideally from
+  an empty VT with no other compositor holding seat0, to also rule out the
+  seat-conflict class entirely — that Hyprland renders a real desktop and
+  not a grey screen. If that still fails, that is the one scenario this
+  session's evidence does not yet cover, and would be the actual next
+  backend-level investigation.
+
+## Post-Slice-8 (cont. 2) — hyq hard dependency, theme completeness, fail-fast runtime, readiness gate
+Follow-up after a real `./install.sh --install` + `--check` run (37
+pass/4 warn/0 fail) still left the runtime in a broken state: `hyq:
+command not found` scrolled by during install but nothing failed, and the
+`Default` theme was silently missing `hypr.theme`. Full findings in
+`docs/personal-fork/ARCHITECTURE.md` ("Personal installer", "hyq: hard
+dependency", "Canonical theme manifest", "Lua runtime", "Graphical-session
+readiness gate", "Aquamarine crash"). Summary:
+
+- **`hyq` is now a hard dependency, not a warning.** `color/hypr.sh` had no
+  presence check before calling `hyq` and its failure was never
+  propagated - `color.set.sh` now checks `load_dconf_kdeglobals`'s exit
+  status and aborts. `installer/preflight.sh` moved `hyq` (and `magick`,
+  `parallel` - equally hard-required, previously unchecked) from the
+  optional/warn list to the mandatory/fail list, and checks `hyq --help`
+  actually runs, not just `command -v`. `install.sh --install`/`--repair`
+  now call `installer/lib.sh:hyq_gate()` and stop **before** touching any
+  theme/colour state if `hyq` is absent.
+- **Built `installer/build-hyq.sh`**: deterministic, pinned-commit,
+  confirmation-gated build of `hyq` (`HyDE-Project/hyprquery`) into
+  `~/.local/bin/hyq` only, never `sudo`. Corrected a wrong assumption in
+  this repo's own notes and `installer/packages.manifest`/
+  `DEPENDENCIES.md`: upstream is **CMake/C++23**, not Cargo/Rust - found by
+  actually cloning the pinned tag and reading `CMakeLists.txt`.
+- **Canonical theme manifest** (`installer/theme.manifest`): directory
+  existence is not completeness. `installer/runtime.sh` now backs up and
+  repairs only the missing REQUIRED files of its own `Default` theme
+  (`installer/templates/hypr.theme.default` for a missing `hypr.theme`),
+  never touches a foreign/user theme beyond reporting it. Verified against
+  a scratch copy of the live machine's actual incomplete `Default` theme
+  this session (real bug, real fix, not hypothetical).
+- **Runtime init is fail-fast end to end**: `installer/runtime.sh` now
+  semantically verifies its own output (non-empty, not just `test -e`; no
+  unresolved `<wallbash_*>` tokens; `@import` targets in generated CSS
+  actually exist) instead of trusting `[ok] wallbash render completed`
+  blindly, and `install.sh --install`/`--repair` now `die` (not
+  `log_warn`) on a runtime-init failure.
+- **Optional wallbash noise reduced**: `installer/runtime.sh` now
+  classifies `fn_wallbash`'s "skip 'missing directory'" warnings against a
+  known-optional-component keyword list (Kvantum, Spicetify, vim, gtk-4.0,
+  qt5ct/qt6ct) and collapses matches into one summary line; anything not
+  matching stays fully visible. `HYDE_KDEGLOBALS_FIX` stays `0`, nothing
+  KDE/Kvantum-related is created or mutated.
+- **Lua ABI collision**: gathered the full evidence chain this time
+  (`readelf -d`, `ldd`, `pacman -Qo`) instead of asserting it - confirmed
+  official-package coexistence (`lua`/`lua54`/`libinput`, not
+  foreign/AUR), confirmed unrelated to the Aquamarine crash's stack
+  frames, still not proven to be an *active* interposition bug (vs. inert
+  coexistence) - documented as such, not overclaimed either direction.
+- **`lgi` startup-critical audit**: every call site classified
+  (`open.lua` on-demand/feature-only, `color/dconf.lua` theme-apply-time
+  but self-degrading, `batterynotify.lua` a real startup daemon that
+  degrades to a clean no-op instead of crashing, `luautils/global/log.lua`
+  has no actual `lgi` dependency despite its comment). None are
+  startup-critical - confirmed with evidence, not assumed.
+- **Fixed a real latent bug found while testing the above**:
+  `Configs/.config/uwsm/env-hyprland.d/00-hyde.sh` referenced
+  `$HYDE_ACTIVATED` unguarded (`[ -z "$HYDE_ACTIVATED" ]`) - harmless under
+  a normal shell, but breaks under `set -u` (which is exactly how the new
+  UWSM-resolution readiness check needed to probe it). Fixed to
+  `${HYDE_ACTIVATED:-}`.
+- **Added `install.sh --diagnose`**: read-only GPU/DRM/EGL/NVIDIA/Lua-ABI/
+  coredump report. Confirmed live on this machine: the documented
+  Aquamarine SIGSEGV coredump is real (`coredumpctl` shows it with
+  `libaquamarine.so` frames) and still unrelated to the Lua ABI
+  coexistence; also surfaced a previously-undocumented `Hyprland` SIGABRT
+  coredump from earlier the same day. A later session investigated both
+  further: the SIGSEGV matches upstream `hyprwm/aquamarine#267` (a closer
+  match than the `#272` originally cited — see ARCHITECTURE.md), and the
+  SIGABRT turned out to be an unrelated `initServer()` exception from
+  running the `Hyprland` binary directly inside a terminal while KDE
+  Plasma already owned the session, not a bug.
+- **Added a `[READY]`/`[NOT READY]` graphical-session readiness gate** to
+  `install.sh --check` - see ARCHITECTURE.md for the exact PASS/WARN
+  criteria.
+
+**Verified live on this machine**: `installer/build-hyq.sh` run to the
+confirmation prompt (declined, non-interactively - plan-printing and
+build-dependency checks execute correctly, no network/build attempted);
+`theme_missing_required`/`theme_repair_default` exercised directly against
+a scratch copy of the real (incomplete) `Default` theme dir, confirmed
+idempotent on a second run; `install.sh --diagnose` run for real (read-only
+by construction); `install.sh --check` re-run after the `00-hyde.sh` fix
+was deployed, confirming the UWSM readiness check now passes. A `deploy.sh`
+run during this testing incidentally overwrote several live
+wallbash-generated files with their repo-tracked placeholder content (see
+"Known caveat" in ARCHITECTURE.md's "Personal installer" section) - restored
+from the automatic pre-write backup before finishing.
+
+**Not done this session (`hyq` genuinely absent, needs the user's explicit
+go-ahead per their own stated requirement before any network/build
+activity)**: `install.sh --build-hyq` was not run to completion, so the
+`Default` theme was not actually repaired against a real render, and
+`install.sh --check` still reports `[NOT READY]` on this machine pending
+that. Next command for the user: `./install.sh --build-hyq`, then
+`./install.sh --repair`, then `./install.sh --check`.
+
+## Post-Slice-8 (cont.) — first real install + runtime debugging + personal installer
+User asked to stop auditing and start fixing the live machine, build a real
+installer, and keep KDE/SDDM-equivalent untouched as fallback. Full findings
+in `docs/personal-fork/ARCHITECTURE.md` ("Personal installer" and "Lua
+runtime" sections). Summary:
+
+- **Corrected a stated assumption**: the display manager is `plasmalogin`
+  (KDE's SDDM successor), not `sddm` — `sddm` isn't even installed.
+  `readlink -f /etc/systemd/system/display-manager.service` is the ground
+  truth; `installer/preflight.sh` checks both.
+- **Fixed**: `open.lua`/`color/dconf.lua` hard-crashed instead of degrading
+  when `lgi` fails to load (Lua 5.5 incompatibility, see ARCHITECTURE.md) -
+  now `pcall`-guarded like `batterynotify.lua` already was.
+- **Fixed**: `color.set.sh` never actually rendered any wallbash template on
+  this machine, for any theme - GNU `parallel` runs jobs under `$SHELL`,
+  which is zsh here, and zsh can't see bash's `export -f` functions. Fixed
+  via `PARALLEL_SHELL=/bin/bash`. Also fixed an unrelated pre-existing bug
+  in the same script: `render_failures` was read before being initialized.
+- **Root-caused, documented, not fixed in-repo** (system packages, not
+  ours to patch): a Lua 5.4/5.5 unversioned-symbol collision between
+  Hyprland's own `liblua.so.5.5` and `libinput.so`'s `liblua5.4.so.5.4`.
+- **Built**: `install.sh` + `installer/*.sh` - a from-scratch, idempotent,
+  no-upstream-installer-code personal installer. Never touches GRUB/EFI/
+  Secure Boot/mkinitcpio/kernel params/NVIDIA drivers/sudoers/partitions,
+  never removes KDE, never replaces the display manager, only ever asks for
+  `sudo` once (a single confirmed `pacman -S --needed` call for
+  official-repo packages). `installer/deploy.manifest` and
+  `installer/packages.manifest` are the explicit, reviewable source of
+  truth for what gets deployed/installed.
+
+**Verified live on this machine**: `bash tests/run.sh` (20/20, unchanged);
+`./install.sh --check` (37 pass / 4 warn / 0 fail - the 4 warnings are the
+documented Lua ABI collision, `lgi` incompatibility, and the two
+not-auto-installed `hyq`/`wlogout` dependencies); a full
+`./install.sh --install --yes` then `./install.sh --repair --yes` run,
+confirming `~/.config/swaync/theme.css` and the rest of the wallbash output
+(`~/.config/hypr/themes/colors.conf`, `~/.cache/hyde/wallbash/*.css`, etc.)
+now actually get generated.
+
+**Not done / explicitly out of scope this slice**: the Aquamarine
+`SIGSEGV` crash inside `eglDestroyContext` during process exit
+(`Aquamarine::CDRMRenderer` teardown) matches an open upstream issue
+(hyprwm/aquamarine#267, a static-destructor-order bug - see
+ARCHITECTURE.md; #272 was an earlier, less precise citation) rather than
+anything in this fork's config - no forcing GPU env vars were found live,
+so there was nothing here to fix; monitoring upstream is the only lever.
+`hyq` (HyDE-Project/hyprquery) has no repo/AUR package and was not built
+from source without the user's explicit go-ahead. `wlogout` (AUR) was not
+installed. Actually restoring `lgi` functionality (vs. graceful
+degradation) needs either an upstream `lua-lgi` fix or a separate pinned
+Lua 5.1-5.3 interpreter, not attempted here - see ARCHITECTURE.md.
+
 ## Post-Slice-8 — full runtime security audit and hardening
 Not one of the original 8 slices — a user-requested complete security audit
 of everything left under `Configs/` now that `Scripts/` is gone (the entire

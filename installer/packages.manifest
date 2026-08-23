@@ -1,0 +1,56 @@
+# installer/packages.manifest
+#
+# Machine-readable dependency list for this personal fork. Source of truth
+# is docs/personal-fork/DEPENDENCIES.md (KEEP rows) plus two runtime gaps
+# found while debugging the live install (missing `imagemagick`, missing
+# `hyq`) - see docs/personal-fork/ARCHITECTURE.md "Runtime initialization"
+# for how each was found.
+#
+# Format (pipe-delimited, '#' comments and blank lines ignored):
+#   name | source | reason
+#
+# source is one of:
+#   repo    - official Arch repository, pacman -S --needed <name>
+#   aur     - AUR only, requires an AUR helper the installer does not
+#             bootstrap; explicit per-package confirmation before touching it
+#   source  - no repo/AUR package exists; built from a pinned upstream git
+#             source under explicit confirmation, never automatically
+#
+# packages.sh only ever offers `pacman -S --needed <missing repo packages>`
+# as a single confirmed sudo invocation. aur/source entries are reported,
+# never auto-installed.
+
+hyprland            | repo   | Compositor (already required by this fork)
+aquamarine          | repo   | Hyprland's DRM/EGL backend library
+uwsm                | repo   | Session/env manager this fork launches Hyprland through
+waybar               | repo   | Status bar
+hyprlock             | repo   | Lockscreen
+hypridle             | repo   | Idle daemon
+hyprpolkitagent       | repo   | Polkit auth agent for GUI privilege prompts
+xdg-desktop-portal-hyprland | repo | Screen share / portal backend for Hyprland
+xdg-desktop-portal-gtk | repo  | GTK file-picker portal
+rofi                 | repo   | Launcher/menu framework used throughout hyde-shell
+brightnessctl         | repo   | Backlight control (hypridle listeners)
+playerctl             | repo   | Media control (waybar modules)
+networkmanager         | repo   | Networking stack
+network-manager-applet  | repo   | nm-applet tray icon
+bluez                | repo   | Bluetooth stack
+bluez-utils            | repo   | bluetoothctl and friends
+blueman               | repo   | blueman-applet tray icon
+grim                  | repo   | Screenshot capture
+slurp                 | repo   | Screenshot region selection
+satty                 | repo   | Screenshot annotation
+swaync                | repo   | Notification daemon (dunst intentionally not installed - see DEPENDENCIES.md)
+wlogout               | aur    | Power/logout menu - the fork's sole accepted AUR dependency
+lua                   | repo   | Lua 5.5 runtime Hyprland links against
+lua-lgi                | repo   | GObject-Introspection bindings for Lua - KNOWN BROKEN on Lua 5.5, see ARCHITECTURE.md
+lua51-lgi              | source | Only needed if you choose the "separate Lua 5.1 runtime for lgi" fix path documented in ARCHITECTURE.md; not installed by default
+python                | repo   | Backs ~49 scripts under .local/lib/hyde
+power-profiles-daemon    | repo   | Waybar power-profile module backend
+imagemagick            | repo   | `magick` binary - REQUIRED by wallbash.sh for palette extraction; missing on this machine as of this audit
+jq                     | repo   | JSON handling, used by swaync.sh and others
+hyq                    | source | HyDE-Project/hyprquery - .hypr-lang query tool required by theme.switch.sh, color/hypr.sh, waybar.py and wallbash/scripts/swaync.sh; no repo/AUR package found. Upstream is CMake/C++23 (NOT Cargo/Rust, despite earlier notes here) - build with installer/build-hyq.sh, a pinned-commit deterministic builder that installs only to ~/.local/bin
+app2unit               | source | Vladimir-csp/app2unit - HARD dependency of Configs/.local/lib/hyde/app.sh (hyde-shell app ...), which every daemon start_up.lua launches goes through (Waybar, wallpaper, hypridle, hyprpolkitagent, config watcher, battery-notify, notifications); no repo/AUR package. Missing it means those all fail SILENTLY (exit 127, no systemd unit ever created) - this is HyDE's actual gray-screen root cause found auditing this fork. Pure POSIX shell, no compiler - installer/build-app2unit.sh (pinned commit, asks for confirmation, installs only to ~/.local/bin)
+awww                   | repo   | Default wallpaper backend (hc.config.wallpaper.backend = "awww" in schema/config.toml; handler Configs/.local/lib/hyde/wallpaper.awww.sh hard-calls the `awww`/`awww-daemon` binaries with no fallback) - found missing and undocumented auditing this fork's gray-screen wallpaper failure; in the official `extra` repo
+libnotify              | repo   | notify-send, used by several fallback paths
+parallel               | repo   | GNU parallel - used by color.set.sh to render wallbash templates
