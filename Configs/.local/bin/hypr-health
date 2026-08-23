@@ -1,0 +1,92 @@
+#!/bin/sh
+
+# Read-only Hyprland workstation health report.
+set -u
+
+failures=0
+
+ok() { printf '[OK]   %s\n' "$1"; }
+warn() { printf '[WARN] %s\n' "$1"; }
+fail() { printf '[FAIL] %s\n' "$1"; failures=$((failures + 1)); }
+
+has() {
+    if command -v "$1" >/dev/null 2>&1; then ok "command: $1"; else fail "missing command: $1"; fi
+}
+
+user_active() {
+    if systemctl --user is-active --quiet "$1"; then ok "user service: $1"; else fail "inactive user service: $1"; fi
+}
+
+system_active() {
+    if systemctl is-active --quiet "$1"; then ok "system service: $1"; else fail "inactive system service: $1"; fi
+}
+
+printf '%s\n' '== Session =='
+printf 'desktop=%s session_desktop=%s type=%s wayland=%s\n'     "${XDG_CURRENT_DESKTOP-}" "${XDG_SESSION_DESKTOP-}"     "${XDG_SESSION_TYPE-}" "${WAYLAND_DISPLAY-}"
+
+if [ "${XDG_CURRENT_DESKTOP-}" = Hyprland ]; then
+    if command -v hyprctl >/dev/null 2>&1 && hyprctl status >/dev/null 2>&1; then
+        ok 'Hyprland IPC reachable'
+        errors=$(hyprctl configerrors 2>&1)
+        if [ -z "$errors" ] || [ "$errors" = 'Config has no errors' ]; then
+            ok 'Hyprland configerrors clean'
+        else
+            fail "Hyprland config errors: $errors"
+        fi
+    else
+        fail 'Hyprland IPC unreachable'
+    fi
+else
+    warn 'not running inside Hyprland; live compositor tests skipped'
+fi
+
+printf '%s\n' '== Core commands =='
+for cmd in hyprctl hyprlock hypridle waybar swaync rofi wl-copy grim slurp brightnessctl wpctl nmcli bluetoothctl; do
+    has "$cmd"
+done
+if [ -x /usr/lib/hyprpolkitagent/hyprpolkitagent ]; then ok 'hyprpolkitagent executable'; else fail 'hyprpolkitagent executable missing'; fi
+
+for cmd in cliphist wf-recorder; do
+    if command -v "$cmd" >/dev/null 2>&1; then ok "optional desktop command: $cmd"; else warn "recommended package missing: $cmd"; fi
+done
+
+printf '%s\n' '== Desktop services =='
+user_active pipewire.service
+user_active wireplumber.service
+user_active pipewire-pulse.service
+user_active xdg-desktop-portal.service
+
+if [ "${XDG_CURRENT_DESKTOP-}" = Hyprland ]; then
+    user_active xdg-desktop-portal-hyprland.service
+    user_active xdg-desktop-portal-gtk.service
+    user_active hyprpolkitagent.service
+    if systemctl --user is-active --quiet plasma-xdg-desktop-portal-kde.service; then
+        fail 'KDE portal active in Hyprland'
+    else
+        ok 'KDE portal inactive in Hyprland'
+    fi
+fi
+
+system_active NetworkManager.service
+system_active bluetooth.service
+
+printf '%s\n' '== Failed units =='
+system_failed=$(systemctl --failed --no-legend 2>/dev/null)
+user_failed=$(systemctl --user --failed --no-legend 2>/dev/null)
+if [ -z "$system_failed" ]; then ok 'no failed system units'; else fail "failed system units:\n$system_failed"; fi
+if [ -z "$user_failed" ]; then ok 'no failed user units'; else fail "failed user units:\n$user_failed"; fi
+
+printf '%s\n' '== Conflicts =='
+if systemctl is-active --quiet NetworkManager.service && systemctl is-active --quiet systemd-networkd.service; then
+    fail 'NetworkManager and systemd-networkd are both active'
+else
+    ok 'single primary network manager'
+fi
+
+printf '%s\n' '== Shell =='
+for cmd in zsh starship fzf zoxide rg fd bat eza; do has "$cmd"; done
+if zsh -i -c exit >/dev/null 2>&1; then ok 'interactive Zsh startup'; else fail 'interactive Zsh startup'; fi
+if starship explain >/dev/null 2>&1; then ok 'Starship config'; else fail 'Starship config'; fi
+
+printf 'result=%s failures=%d\n' "$([ "$failures" -eq 0 ] && printf PASS || printf FAIL)" "$failures"
+[ "$failures" -eq 0 ]

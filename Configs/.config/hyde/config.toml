@@ -2,3 +2,16 @@
 # Environment variables should be on top
 # Updated config.toml file can be found at $HOME/.local/share/hyde/config.toml
 "$schema" = "https://raw.githubusercontent.com/HyDE-Project/HyDE/refs/heads/master/Configs/.local/share/hyde/schema/config.toml.json"
+
+# Explicit values (matching schema defaults) so config.lua actually has
+# something to write: with an empty [hyprlock] section it computed 0
+# variables and silently skipped writing $XDG_STATE_HOME/hyde/hypr.conf,
+# leaving hyprlock's general{} block sourcing undefined $HYPRLOCK_* vars.
+[hyprlock]
+hide_cursor = false
+ignore_empty_input = false
+immediate_render = false
+text_trim = true
+fractional_scaling = 2
+screencopy_mode = 0
+fail_timeout = 2000

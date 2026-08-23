@@ -13,6 +13,7 @@ dependencies = [
     "uv>=0.1.0",
     "deez-dots",
     "pyprland==3.4.3",
+    "pygobject>=3.56.2",
 ]
 
 [project.optional-dependencies]

@@ -40,6 +40,12 @@ blueman               | repo   | blueman-applet tray icon
 grim                  | repo   | Screenshot capture
 slurp                 | repo   | Screenshot region selection
 satty                 | repo   | Screenshot annotation
+hyprpicker             | repo   | Freeze-frame screen for grimblast's area selection (MOD+CTRL+P); missing on this machine as of this audit
+wl-clipboard           | repo   | wl-copy/wl-paste - grimblast's copy/copysave actions hard-require wl-copy; missing on this machine as of this audit
+cliphist               | repo   | Single clipboard-history backend for the Hyprland session
+wf-recorder            | repo   | Lightweight native Wayland screen recording
+rtkit                  | repo   | Realtime scheduling broker used by PipeWire when available
+grimblast              | source | hyprwm/contrib - screenshot capture helper every screenshot keybind in Configs/.local/lib/hyde/screenshot.sh execs unconditionally (no existence check); no repo/AUR package, and upstream HyDE's now-deleted Scripts/ used to fetch it as a raw blob at deploy time (flagged in SECURITY.md, never actually resolved in this fork). No compiler needed, plain bash - installer/build-grimblast.sh (pinned commit, asks for confirmation, installs only to ~/.local/lib/hyde/screenshot)
 swaync                | repo   | Notification daemon (dunst intentionally not installed - see DEPENDENCIES.md)
 wlogout               | aur    | Power/logout menu - the fork's sole accepted AUR dependency
 lua                   | repo   | Lua 5.5 runtime Hyprland links against

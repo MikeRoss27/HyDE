@@ -5,18 +5,23 @@
   "positionY": "top",
   "cssPriority": "user",
   "fit-to-screen": true,
-  "control-center-width": 400,
+  "control-center-width": 430,
   "control-center-height": 300,
-  "control-center-margin-top": 2,
-  "control-center-margin-bottom": 2,
-  "control-center-margin-right": 1,
-  "control-center-margin-left": 0,
+  "control-center-margin-top": 15,
+  "control-center-margin-bottom": 15,
+  "control-center-margin-right": 15,
+  "control-center-margin-left": 15,
   "notification-window-width": 400,
   "notification-body-image-height": 200,
   "notification-body-image-width": 200,
   "timeout": 10,
   "timeout-low": 5,
   "timeout-critical": 0,
+  "notification-2fa-action": true,
+  "notification-inline-replies": true,
+  "relative-timestamps": true,
+  "notification-grouping": true,
+  "text-empty": "Aucune notification",
   "keyboard-shortcuts": true,
   "image-visibility": "when-available",
   "transition-time": 200,
@@ -33,6 +38,7 @@
   "widgets": [
     "title",
     "dnd",
+    "inhibitors",
     "notifications",
     "mpris",
     "backlight",
@@ -41,14 +47,26 @@
   ],
   "widget-config": {
     "title": {
-      "text": "Notifications",
+      "text": "Centre de notifications",
       "clear-all-button": true,
-      "button-text": "Clear All"
+      "button-text": "Tout effacer"
     },
     "dnd": {
-      "text": "Do Not Disturb"
+      "text": "Ne pas déranger"
     },
-    "mpris": {},
+    "inhibitors": {
+      "text": "Notifications suspendues",
+      "clear-all-button": true,
+      "button-text": "Réactiver"
+    },
+    "notifications": {
+      "vexpand": true
+    },
+    "mpris": {
+      "show-album-art": "when-available",
+      "autohide": true,
+      "loop-carousel": true
+    },
     "backlight": {
       "label": " 󰃟 ",
       "device": "intel_backlight",
@@ -58,25 +76,55 @@
       "label": " 󰕾 "
     },
     "buttons-grid": {
+      "buttons-per-row": 3,
       "actions": [
         {
-          "label": "  󱛆  ",
-          "command": "nm-connection-editor"
+          "label": "󰖩",
+          "type": "toggle",
+          "command": "swaync-actions wifi-toggle",
+          "update-command": "swaync-actions wifi-state"
         },
         {
-          "label": "    ",
-          "command": "blueman-manager"
+          "label": "",
+          "type": "toggle",
+          "command": "swaync-actions bluetooth-toggle",
+          "update-command": "swaync-actions bluetooth-state"
         },
         {
-          "label": "  󰃛  ",
-          "command": " hyde-shell hyprsunset --toggle"
+          "label": "󰖔",
+          "type": "toggle",
+          "command": "swaync-actions night-toggle",
+          "update-command": "swaync-actions night-state"
         },
         {
-          "label": "  ⏻  ",
-          "command": "hyde-shell logoutlaunch"
+          "label": "󰍭",
+          "type": "toggle",
+          "command": "swaync-actions mic-toggle",
+          "update-command": "swaync-actions mic-state"
+        },
+        {
+          "label": "󰄀",
+          "command": "swaync-actions screenshot"
+        },
+        {
+          "label": "",
+          "command": "swaync-actions clipboard"
+        },
+        {
+          "label": "󰾆",
+          "type": "toggle",
+          "command": "swaync-actions power-toggle",
+          "update-command": "swaync-actions power-state"
+        },
+        {
+          "label": "󰌾",
+          "command": "swaync-actions lock"
+        },
+        {
+          "label": "⏻",
+          "command": "swaync-actions power-menu"
         }
       ]
     }
   }
 }
-

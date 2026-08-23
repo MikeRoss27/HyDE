@@ -39,7 +39,9 @@ typeset -U path PATH
 # History
 # -----------------------------------------------------------------------------
 
-HISTFILE="$HOME/.zsh_history"
+typeset -g ZSH_STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
+mkdir -p -m 700 "$ZSH_STATE_DIR"
+HISTFILE="$ZSH_STATE_DIR/history"
 HISTSIZE=50000
 SAVEHIST=50000
 
@@ -168,7 +170,8 @@ alias zw="zeditor --wait"
 # Modern CLI
 # -----------------------------------------------------------------------------
 
-alias ls="eza --icons --group-directories-first"
+# Arch's global Zsh config may define ls; keep the standard command available.
+unalias ls 2>/dev/null
 alias ll="eza -lah --icons --git --group-directories-first"
 alias la="eza -a --icons --group-directories-first"
 alias lt="eza --tree --level=2 --icons --group-directories-first"
@@ -286,6 +289,7 @@ cxa() {
 prompt off
 
 if (( $+commands[starship] )); then
+    typeset -g ZLE_RPROMPT_INDENT=0
     eval "$(starship init zsh)"
 fi
 

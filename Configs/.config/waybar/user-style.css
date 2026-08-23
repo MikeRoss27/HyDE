@@ -1,1 +1,49 @@
 /* User custom styles */
+
+* {
+    font-size: 13px;
+}
+
+#custom-pin-browser,
+#custom-pin-code,
+#custom-pin-zed,
+#custom-pin-files,
+#custom-pin-terminal {
+    min-width: 28px;
+    margin: 5px 3px;
+    padding: 0 9px;
+    border-radius: 11px;
+    color: @main-fg;
+    background: alpha(@main-bg, 0.72);
+    transition: all 180ms ease;
+}
+
+#custom-pin-browser:hover,
+#custom-pin-code:hover,
+#custom-pin-zed:hover,
+#custom-pin-files:hover,
+#custom-pin-terminal:hover {
+    color: @wb-hvr-fg;
+    background: @wb-hvr-bg;
+}
+
+#custom-pin-browser.running,
+#custom-pin-code.running,
+#custom-pin-zed.running,
+#custom-pin-files.running,
+#custom-pin-terminal.running {
+    color: @wb-act-fg;
+    background: @wb-act-bg;
+    box-shadow: inset 0 -2px alpha(@wb-act-fg, 0.65);
+}
+
+#taskbar {
+    margin-left: 5px;
+}
+
+#taskbar button {
+    min-width: 28px;
+    margin: 5px 3px;
+    padding: 0 9px;
+    border-radius: 11px;
+}

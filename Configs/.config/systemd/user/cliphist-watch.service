@@ -1,0 +1,17 @@
+[Unit]
+Description=Hyprland clipboard history watchers
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=XDG_CURRENT_DESKTOP=Hyprland
+ConditionFileIsExecutable=/usr/bin/cliphist
+ConditionFileIsExecutable=/usr/bin/wl-paste
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/cliphist-watch
+Restart=on-failure
+RestartSec=2
+KillMode=control-group
+
+[Install]
+WantedBy=graphical-session.target

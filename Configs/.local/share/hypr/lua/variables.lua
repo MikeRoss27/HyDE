@@ -39,14 +39,14 @@ local hc = hyde.config
 hc.start.dbus_share_picker = "dbus-update-activation-environment --systemd " .. systemd_env_str
 hc.start.systemd_share_picker = "systemctl --user import-environment " .. systemd_env_str
 hc.start.xdg_portal_reset = "hyde-shell resetxdgportal.lua"
-hc.start.auth_dialogue = "hyde-shell app -t " .. svc .. " -- polkitkdeauth.sh"
+hc.start.auth_dialogue = "systemctl --user start hyprpolkitagent.service"
 hc.start.idle_daemon = "hyde-shell app -u " .. unt .. "-idle.service -t " .. svc .. " -- hypridle"
 hc.start.blue_light_filter_daemon =
     "hyde-shell app -u " .. unt .. "-blue-light-filter.service -t " .. svc .. " -- hyprsunset"
 hc.start.wallpaper =
     "hyde-shell app -u " .. unt .. "-wallpaper.service -t " .. svc .. " -- wallpaper.sh --start --global"
-hc.start.bar = "hyde-shell app -u " .. unt .. "-bar.scope -t " .. scp .. " -- waybar.py --watch" -- waybar.py injects it itself as -u $unt.service :- therefore we use scope here to avoid conflicts
-hc.start.notifications = "hyde-shell app -u " .. unt .. "-notifications.service -t " .. svc .. " -- swaync"
+hc.start.bar = "hyde-shell app -u " .. unt .. "-bar.service -t " .. svc .. " -- waybar"
+hc.start.notifications = "systemctl --user start swaync.service"
 hc.start.automount = "hyde-shell app -u " .. unt .. "-automount.service -t " .. svc .. " -- udiskie --tray --automount --notify"
 hc.start.battery_notify = "hyde-shell app -u " .. unt .. "-battery-notify.service -t " .. svc .. " -- batterynotify.lua"
 hc.start.applet_network_manager =

@@ -1,0 +1,48 @@
+{
+  "custom/pin-browser": {
+    "exec": "$HOME/.config/waybar/scripts/pinned-app browser status",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "$HOME/.config/waybar/scripts/pinned-app browser"
+  },
+  "custom/pin-code": {
+    "exec": "$HOME/.config/waybar/scripts/pinned-app code status",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "$HOME/.config/waybar/scripts/pinned-app code"
+  },
+  "custom/pin-zed": {
+    "exec": "$HOME/.config/waybar/scripts/pinned-app zed status",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "$HOME/.config/waybar/scripts/pinned-app zed"
+  },
+  "custom/pin-files": {
+    "exec": "$HOME/.config/waybar/scripts/pinned-app files status",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "$HOME/.config/waybar/scripts/pinned-app files"
+  },
+  "custom/pin-terminal": {
+    "exec": "$HOME/.config/waybar/scripts/pinned-app terminal status",
+    "return-type": "json",
+    "interval": 2,
+    "on-click": "$HOME/.config/waybar/scripts/pinned-app terminal"
+  },
+  "wlr/taskbar#running": {
+    "all-outputs": true,
+    "format": "{icon}",
+    "icon-size": 18,
+    "spacing": 4,
+    "tooltip-format": "{title}",
+    "on-click": "activate",
+    "on-click-middle": "close",
+    "ignore-list": [
+      "brave-browser",
+      "code",
+      "dev.zed.Zed",
+      "org.kde.dolphin",
+      "kitty"
+    ]
+  }
+}

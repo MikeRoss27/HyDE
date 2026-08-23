@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -u
+
+action="${1:-}"
+
+case "$action" in
+  wifi-toggle)
+    if [[ "${SWAYNC_TOGGLE_STATE:-false}" == "true" ]]; then
+      nmcli radio wifi on
+    else
+      nmcli radio wifi off
+    fi
+    ;;
+  wifi-state)
+    [[ "$(nmcli -t -f WIFI general 2>/dev/null)" == "enabled" ]] && echo true || echo false
+    ;;
+  bluetooth-toggle)
+    if [[ "${SWAYNC_TOGGLE_STATE:-false}" == "true" ]]; then
+      bluetoothctl power on
+    else
+      bluetoothctl power off
+    fi
+    ;;
+  bluetooth-state)
+    bluetoothctl show 2>/dev/null | grep -q "Powered: yes" && echo true || echo false
+    ;;
+  night-toggle)
+    hyde-shell hyprsunset --toggle --quiet
+    ;;
+  night-state)
+    temperature="$(hyprctl hyprsunset temperature 2>/dev/null || echo 6000)"
+    [[ "$temperature" =~ ^[0-9]+$ && "$temperature" -lt 6000 ]] && echo true || echo false
+    ;;
+  mic-toggle)
+    wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+    ;;
+  mic-state)
+    wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null | grep -q MUTED && echo true || echo false
+    ;;
+  power-toggle)
+    if [[ "${SWAYNC_TOGGLE_STATE:-false}" == "true" ]]; then
+      powerprofilesctl set power-saver
+    else
+      powerprofilesctl set balanced
+    fi
+    ;;
+  power-state)
+    [[ "$(powerprofilesctl get 2>/dev/null)" == "power-saver" ]] && echo true || echo false
+    ;;
+  screenshot)
+    grimblast --notify copysave area
+    ;;
+  clipboard)
+    hyde-shell cliphist --copy
+    ;;
+  lock)
+    loginctl lock-session
+    ;;
+  power-menu)
+    hyde-shell logoutlaunch
+    ;;
+  *)
+    exit 2
+    ;;
+esac

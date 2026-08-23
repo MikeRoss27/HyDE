@@ -485,9 +485,22 @@ def signal_handler(sig, frame):
 
 
 def _signal_waybar(sig):
-    """Send a signal to the waybar process/unit (systemd or pkill)."""
+    """Send a signal only to the main Waybar process."""
     if HAS_SYSTEMD:
-        subprocess.run(["systemctl", "--user", "kill", "-s", sig, UNIT_NAME])
+        # The Waybar unit also owns long-running custom modules.  Signalling the
+        # whole cgroup makes those helpers receive Waybar's control signals and
+        # can leave crashing/zombie children behind after a config reload.
+        subprocess.run(
+            [
+                "systemctl",
+                "--user",
+                "kill",
+                "--kill-whom=main",
+                "-s",
+                sig,
+                UNIT_NAME,
+            ]
+        )
     else:
         subprocess.run(["pkill", f"-{sig}", "-u", str(os.getuid()), "-x", "waybar"])
 
@@ -553,10 +566,20 @@ def kill_waybar():
 
 
 def restart_waybar():
-    """Reload Waybar if running to prevent the hiding bug, otherwise start it."""
+    """Restart Waybar cleanly after changing its generated configuration."""
     if is_waybar_running_for_current_user():
-        logger.debug("Hot-reloading Waybar config via SIGUSR2...")
-        _signal_waybar("SIGUSR2")
+        if HAS_SYSTEMD:
+            # Waybar 0.15 can leak module processes and abort per-output
+            # children when SIGUSR2 hot reloads a multi-monitor bar.  A unit
+            # restart lets systemd reap the whole old cgroup before starting
+            # the new configuration.
+            logger.debug("Restarting Waybar systemd unit cleanly...")
+            subprocess.run(
+                ["systemctl", "--user", "--no-block", "restart", UNIT_NAME]
+            )
+        else:
+            kill_waybar()
+            run_waybar()
     else:
         run_waybar()
 
@@ -1302,15 +1325,19 @@ def main():
         update_style(args.style)
     if args.next or args.prev or args.set:
         handle_layout_navigation("--next" if args.next else "--prev" if args.prev else "--set")
+        return
     if args.json:
         print(json.dumps(list_layouts(), indent=4))
         sys.exit(0)
     if args.select_layout:
         layout_selector()
+        return
     if args.select_style:
         style_selector()
+        return
     if args.select:
         select_layout_and_style()
+        return
 
     if args.kill:
         kill_waybar()

@@ -11,7 +11,7 @@ hl.on(
 	function()
 		check_exec(hs.dbus_share_picker)
 		check_exec(hs.systemd_share_picker)
-		check_exec("uwsm finalize") -- * optional
+		check_exec("uwsm finalize")
 		check_exec(hs.wallpaper)
 		check_exec(hs.bar)
 		check_exec(hs.blue_light_filter_daemon)

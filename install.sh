@@ -23,6 +23,11 @@
 #                          deterministic, confirmation-gated install of
 #                          app2unit from a pinned upstream commit, installed
 #                          to ~/.local/bin only, never sudo
+#   install.sh --build-grimblast
+#                          deterministic, confirmation-gated install of
+#                          grimblast (screenshot capture helper) from a
+#                          pinned upstream commit, installed to
+#                          ~/.local/lib/hyde/screenshot only, never sudo
 #   install.sh --diagnose  read-only GPU/DRM/EGL/Lua-ABI/coredump report
 #   install.sh --diagnose-startup
 #                          read-only Waybar/SwayNC/wallpaper/hypridle/polkit
@@ -48,6 +53,7 @@ usage() {
 mode=""
 build_hyq_args=()
 build_app2unit_args=()
+build_grimblast_args=()
 for arg in "$@"; do
     case "$arg" in
         --check) mode=check ;;
@@ -56,11 +62,12 @@ for arg in "$@"; do
         --repair) mode=repair ;;
         --build-hyq) mode=build-hyq ;;
         --build-app2unit) mode=build-app2unit ;;
+        --build-grimblast) mode=build-grimblast ;;
         --diagnose) mode=diagnose ;;
         --diagnose-startup) mode=diagnose-startup ;;
         --rollback) mode=rollback ;;
         --yes) ASSUME_YES=1 ;;
-        --force) build_hyq_args+=(--force); build_app2unit_args+=(--force) ;;
+        --force) build_hyq_args+=(--force); build_app2unit_args+=(--force); build_grimblast_args+=(--force) ;;
         -h|--help) usage; exit 0 ;;
         *) log_err "unknown argument: $arg"; usage; exit 2 ;;
     esac
@@ -133,6 +140,10 @@ case "$mode" in
 
     build-app2unit)
         "$INSTALLER_DIR/build-app2unit.sh" "${build_app2unit_args[@]}"
+        ;;
+
+    build-grimblast)
+        "$INSTALLER_DIR/build-grimblast.sh" "${build_grimblast_args[@]}"
         ;;
 
     diagnose)

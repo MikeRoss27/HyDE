@@ -1,0 +1,11 @@
+#!/bin/sh
+
+case "${1-}" in
+    on|off|toggle)
+        exec hyprctl dispatch "hl.dsp.dpms({ action = \"$1\" })"
+        ;;
+    *)
+        printf 'usage: %s {on|off|toggle}\n' "${0##*/}" >&2
+        exit 2
+        ;;
+esac

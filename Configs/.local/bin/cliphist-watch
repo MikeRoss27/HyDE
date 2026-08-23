@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -eu
+
+command -v wl-paste >/dev/null 2>&1
+command -v cliphist >/dev/null 2>&1
+
+wl-paste --type text --watch cliphist store &
+text_pid=$!
+wl-paste --type image --watch cliphist store &
+image_pid=$!
+
+trap 'kill "$text_pid" "$image_pid" 2>/dev/null || true' INT TERM HUP
+wait "$text_pid" "$image_pid"

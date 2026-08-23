@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+set -u
+
+app_key="${1:-}"
+action="${2:-toggle}"
+
+case "$app_key" in
+  browser)
+    app_class="brave-browser"
+    app_name="Brave"
+    app_icon=""
+    launch=(flatpak run com.brave.Browser)
+    ;;
+  code)
+    app_class="code"
+    app_name="Visual Studio Code"
+    app_icon="󰨞"
+    launch=(flatpak run com.visualstudio.code)
+    ;;
+  zed)
+    app_class="dev.zed.Zed"
+    app_name="Zed"
+    app_icon="󰰭"
+    launch=(zeditor)
+    ;;
+  files)
+    app_class="org.kde.dolphin"
+    app_name="Dolphin"
+    app_icon=""
+    launch=(dolphin)
+    ;;
+  terminal)
+    app_class="kitty"
+    app_name="Kitty"
+    app_icon=""
+    launch=(kitty)
+    ;;
+  *)
+    exit 2
+    ;;
+esac
+
+is_running=false
+if hyprctl clients -j 2>/dev/null | jq -e --arg class "$app_class" \
+  'any(.[]; .class == $class or .initialClass == $class)' >/dev/null; then
+  is_running=true
+fi
+
+if [[ "$action" == "status" ]]; then
+  if $is_running; then
+    state="running"
+    hint="ouverte — clic pour afficher"
+  else
+    state="pinned"
+    hint="épinglée — clic pour lancer"
+  fi
+
+  jq -cn \
+    --arg text "$app_icon" \
+    --arg tooltip "$app_name · $hint" \
+    --arg class "$state" \
+    '{text: $text, tooltip: $tooltip, class: $class}'
+  exit 0
+fi
+
+if $is_running; then
+  hyprctl dispatch focuswindow "class:^(${app_class})$" >/dev/null
+else
+  setsid -f "${launch[@]}" >/dev/null 2>&1
+fi
