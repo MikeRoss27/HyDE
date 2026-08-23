@@ -1,44 +1,78 @@
-/* Modern floating taskbar - open windows dock, bottom of screen */
+/* Windows-Aero-style glass taskbar, adapted from diinki/diinki-aero */
 
 @import "theme.css";
 
 * {
-  font-family: "JetBrainsMono Nerd Font", sans-serif;
-  font-size: 14px;
+  border: none;
   min-height: 0;
-}
-
-window#waybar {
+  font-family: "JetBrainsMono Nerd Font", "Noto Sans", sans-serif;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 0;
   background: transparent;
 }
 
+window#waybar {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(0, 0, 0, 0.55) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  padding: 5px 12px;
+}
+
+tooltip {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(0, 0, 0, 0.5) 50%
+  );
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
 #taskbar {
-  background: rgba(8, 10, 14, 0.92);
-  border: 1.5px solid alpha(@main-fg, 0.45);
-  border-radius: 20px;
-  padding: 6px 14px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  color: white;
 }
 
 #taskbar button {
-  background: rgba(255, 255, 255, 0.04);
-  border: none;
-  border-radius: 14px;
-  padding: 6px 14px;
   margin: 0 5px;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  padding: 4px;
+  border-radius: 12px;
+  border-style: none;
+  border-bottom-style: solid;
+  border-top-style: solid;
+  border-width: 1px;
+  border-bottom-color: rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
 }
 
 #taskbar button.no-margin-padding {
   margin: 0 5px;
-  padding: 6px 14px;
+  padding: 4px;
 }
 
 #taskbar button:hover {
-  background: alpha(@main-fg, 0.18);
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.08),
+    rgba(0, 0, 0, 0.45)
+  );
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
 #taskbar button.active {
-  background: alpha(@main-fg, 0.28);
-  box-shadow: 0 0 14px alpha(@main-fg, 0.6);
+  background-image: linear-gradient(
+    to bottom,
+    alpha(@main-fg, 0.65),
+    alpha(@main-fg, 0.12)
+  );
+  box-shadow: 0 0 14px alpha(@main-fg, 0.65);
 }
