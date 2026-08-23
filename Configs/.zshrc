@@ -178,6 +178,10 @@ alias c="clear"
 # Deliberately DO NOT replace cat or grep globally.
 # Use bat and rg directly.
 
+if (( $+commands[bat] )); then
+    export BAT_THEME="Catppuccin Mocha"
+fi
+
 
 # -----------------------------------------------------------------------------
 # Arch Linux
