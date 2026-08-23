@@ -23,6 +23,7 @@ surviving source of truth**; packages are installed manually against it.
 | brightnessctl | Backlight control | hypridle listeners | KEEP | — | Standard, no overlap |
 | playerctl | Media control | waybar mediaplayer/spotify modules | KEEP | — | Standard, no overlap |
 | NetworkManager + `nm-applet` | Networking + tray icon | `hc.start.applet_network_manager` | KEEP | — | Already user's networking stack |
+| udiskie | Auto-mount external drives/USB (tray + notify) | `lua/variables.lua` (`hc.start.automount`) | ADD | — | Kernel/udisks2 detected external media fine but nothing mounted it; no automount daemon was installed. Official repo, no AUR |
 | Bluetooth + `blueman-applet` | Bluetooth + tray icon | `hc.start.applet_bluetooth` | KEEP | — | User confirmed keep |
 | grim, slurp, satty | Screenshot stack | `screenshot.sh`, `pm.py` | KEEP | — | No duplicate tool present (no swappy alongside satty) |
 | swaync | Notifications | `dots-groups/extra.toml` → `swaync.toml` | KEEP | — | User chose swaync's panel/history over dunst |

@@ -47,6 +47,7 @@ hc.start.wallpaper =
     "hyde-shell app -u " .. unt .. "-wallpaper.service -t " .. svc .. " -- wallpaper.sh --start --global"
 hc.start.bar = "hyde-shell app -u " .. unt .. "-bar.scope -t " .. scp .. " -- waybar.py --watch" -- waybar.py injects it itself as -u $unt.service :- therefore we use scope here to avoid conflicts
 hc.start.notifications = "hyde-shell app -u " .. unt .. "-notifications.service -t " .. svc .. " -- swaync"
+hc.start.automount = "hyde-shell app -u " .. unt .. "-automount.service -t " .. svc .. " -- udiskie --tray --automount --notify"
 hc.start.battery_notify = "hyde-shell app -u " .. unt .. "-battery-notify.service -t " .. svc .. " -- batterynotify.lua"
 hc.start.applet_network_manager =
     "hyde-shell app -u " .. unt .. "-network-manager-applet.service -t " .. svc .. " -- nm-applet --indicator"
