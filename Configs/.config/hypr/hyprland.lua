@@ -42,3 +42,14 @@ end
 -- The full reference is KEYBINDINGS.md in the HyDE repository.
 --
 -- Other Lua files next to this one can be pulled in with require("name").
+
+-- ============================================================================
+-- Input
+-- ============================================================================
+
+-- French AZERTY keyboard
+hl.config({
+	input = {
+		kb_layout = "fr",
+	},
+})
