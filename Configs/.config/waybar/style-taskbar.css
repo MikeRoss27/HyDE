@@ -13,31 +13,32 @@ window#waybar {
 }
 
 #taskbar {
-  background: alpha(@main-bg, 0.75);
-  border: 1px solid alpha(@main-fg, 0.3);
-  border-radius: 18px;
-  padding: 3px 8px;
+  background: rgba(8, 10, 14, 0.92);
+  border: 1.5px solid alpha(@main-fg, 0.45);
+  border-radius: 20px;
+  padding: 6px 14px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
 #taskbar button {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
   border: none;
-  border-radius: 12px;
-  padding: 4px 10px;
-  margin: 2px;
+  border-radius: 14px;
+  padding: 6px 14px;
+  margin: 0 5px;
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 #taskbar button.no-margin-padding {
-  margin: 2px;
-  padding: 4px 10px;
+  margin: 0 5px;
+  padding: 6px 14px;
 }
 
 #taskbar button:hover {
-  background: alpha(@main-fg, 0.14);
+  background: alpha(@main-fg, 0.18);
 }
 
 #taskbar button.active {
-  background: alpha(@main-fg, 0.22);
-  box-shadow: 0 0 10px alpha(@main-fg, 0.55);
+  background: alpha(@main-fg, 0.28);
+  box-shadow: 0 0 14px alpha(@main-fg, 0.6);
 }
