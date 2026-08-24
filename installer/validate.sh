@@ -23,10 +23,12 @@ check_deployed_manifest() {
             [ -d "$dir_abs" ] || continue
             while IFS= read -r -d '' f; do
                 local rel=${f#"$REPO_ROOT/Configs/"}
+                deploy_path_excluded "$rel" && continue
                 checked=$((checked + 1))
                 [ -e "$HOME/$rel" ] || { _warn "not deployed: ~/$rel"; missing=$((missing + 1)); }
             done < <(find "$dir_abs" -type f -print0)
         else
+            deploy_path_excluded "$line" && continue
             checked=$((checked + 1))
             [ -e "$HOME/$line" ] || { _warn "not deployed: ~/$line"; missing=$((missing + 1)); }
         fi
@@ -174,9 +176,11 @@ missing_manifest=$(
             [ -d "$dir_abs" ] || continue
             while IFS= read -r -d '' f; do
                 rel=${f#"$REPO_ROOT/Configs/"}
+                deploy_path_excluded "$rel" && continue
                 [ -e "$HOME/$rel" ] || echo missing
             done < <(find "$dir_abs" -type f -print0)
         else
+            deploy_path_excluded "$line" && continue
             [ -e "$HOME/$line" ] || echo missing
         fi
     done <"$SCRIPT_DIR/deploy.manifest" | wc -l
@@ -283,11 +287,13 @@ else
     _gate_fail "Hyprland Lua config missing or fails to parse ($entry)"
 fi
 
-# KDE fallback still present
-if pkg_installed plasma-desktop || pkg_installed plasma-meta; then
-    _gate_pass "KDE Plasma fallback still installed"
+# Single-DE by design: KDE Plasma was deliberately removed once Hyprland was
+# confirmed working (no fallback session kept - user's explicit choice, see
+# ROADMAP.md). SDDM/qylock is the only login path now, so verify that instead.
+if [ "$(readlink -f /etc/systemd/system/display-manager.service 2>/dev/null)" = "/usr/lib/systemd/system/sddm.service" ]; then
+    _gate_pass "SDDM is the active display-manager.service"
 else
-    _gate_fail "KDE Plasma fallback not detected"
+    _gate_fail "display-manager.service does not point at sddm.service"
 fi
 
 # --- warn-only, non-blocking ---

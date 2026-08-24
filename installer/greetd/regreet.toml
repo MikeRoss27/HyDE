@@ -1,0 +1,11 @@
+skip_selection = false
+
+[GTK]
+application_prefer_dark_theme = true
+
+[appearance]
+greeting_msg = "Bienvenue"
+
+[commands]
+reboot = [ "systemctl", "reboot" ]
+poweroff = [ "systemctl", "poweroff" ]

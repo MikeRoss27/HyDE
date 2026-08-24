@@ -32,6 +32,7 @@ INSTALLER_STATE_DIR="$XDG_STATE_HOME/hyde-installer"
 INSTALLER_RUN_ID=${INSTALLER_RUN_ID:-$(date +%Y%m%d-%H%M%S)}
 INSTALLER_BACKUP_DIR="$INSTALLER_STATE_DIR/backups/$INSTALLER_RUN_ID"
 INSTALLER_MANIFEST_LOG="$INSTALLER_STATE_DIR/deploy-manifest.log"
+DEPLOY_EXCLUDE_FILE="$INSTALLER_DIR/deploy.exclude"
 
 DRY_RUN=${DRY_RUN:-0}
 ASSUME_YES=${ASSUME_YES:-0}
@@ -75,6 +76,22 @@ ensure_dir() {
     else
         mkdir -p "$d"
     fi
+}
+
+# deploy_path_excluded <path-relative-to-Configs>
+# Returns 0 for an intentional exclusion listed in deploy.exclude. Keeping the
+# policy in data makes recursive manifest entries deterministic without
+# requiring stale/experimental files to be deleted from the audit checkout.
+deploy_path_excluded() {
+    local rel=$1 pattern
+    [ -f "$DEPLOY_EXCLUDE_FILE" ] || return 1
+    while IFS= read -r pattern; do
+        pattern=${pattern%%#*}
+        pattern=$(printf '%s' "$pattern" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+        [ -n "$pattern" ] || continue
+        [[ $rel == $pattern ]] && return 0
+    done <"$DEPLOY_EXCLUDE_FILE"
+    return 1
 }
 
 # backup_then_write <target> <content-source-file>

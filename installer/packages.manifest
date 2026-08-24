@@ -47,6 +47,11 @@ wf-recorder            | repo   | Lightweight native Wayland screen recording
 rtkit                  | repo   | Realtime scheduling broker used by PipeWire when available
 grimblast              | source | hyprwm/contrib - screenshot capture helper every screenshot keybind in Configs/.local/lib/hyde/screenshot.sh execs unconditionally (no existence check); no repo/AUR package, and upstream HyDE's now-deleted Scripts/ used to fetch it as a raw blob at deploy time (flagged in SECURITY.md, never actually resolved in this fork). No compiler needed, plain bash - installer/build-grimblast.sh (pinned commit, asks for confirmation, installs only to ~/.local/lib/hyde/screenshot)
 swaync                | repo   | Notification daemon (dunst intentionally not installed - see DEPENDENCIES.md)
+sddm                  | repo   | Login manager - hosts the vendored pixel-rainyroom/pixel-cyberpunk Qt6/QML greeter themes (installer/sddm/); replaces greetd as the active display-manager.service. Missing on this machine as of this audit - see ROADMAP.md
+weston                 | repo   | SDDM's own documented default Wayland-greeter host compositor (DisplayServer=wayland with no CompositorCommand override, installer/sddm/sddm.conf.d/20-wayland.conf) - see ROADMAP.md for why this was chosen over CompositorCommand=Hyprland/cage
+greetd                | repo   | Kept installed, disabled, as the rollback display manager once sddm is switched in (installer/migrate-greetd-to-sddm.sh) - already installed on this machine
+greetd-regreet          | repo   | ReGreet greeter for greetd, part of the same rollback path - already installed on this machine
+kmscon                | repo   | VT text-mode console renderer; kept installed (unit disabled via installer/fix-vt1-conflict.sh) - already installed on this machine, see ROADMAP.md "VT1 conflict"
 wlogout               | aur    | Power/logout menu - the fork's sole accepted AUR dependency
 lua                   | repo   | Lua 5.5 runtime Hyprland links against
 lua-lgi                | repo   | GObject-Introspection bindings for Lua - KNOWN BROKEN on Lua 5.5, see ARCHITECTURE.md

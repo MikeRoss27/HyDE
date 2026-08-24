@@ -31,6 +31,7 @@
 .local/bin/hypr-dpms
 .local/bin/hypr-health
 .local/bin/swaync-actions
+.local/bin/battery-notify
 
 .local/lib/hyde/
 
@@ -38,7 +39,6 @@
 .local/share/hyde/
 .local/share/waybar/
 .local/share/wallbash/
-.local/share/xdg-desktop-portal/
 .local/share/icons/
 
 # --- deliberately NOT deployed (present under Configs/ but out of scope) ---
@@ -53,3 +53,5 @@
 # .config/spotify-flags.conf, .config/code-flags.conf, .config/codium-flags.conf,
 #   .config/electron-flags.conf                          - unrelated app flags
 # .local/share/fastfetch                                 - optional, not required for Hyprland
+# .local/share/xdg-desktop-portal                        - distro Hyprland profile is active;
+#                                                         bundled override targets unavailable hypr-kdeconnect

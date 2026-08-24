@@ -24,10 +24,12 @@ deploy_run() {
             [ -d "$dir_abs" ] || { log_err "manifest directory missing from repo: $dir_rel"; failed=1; continue; }
             while IFS= read -r -d '' f; do
                 local rel=${f#"$REPO_ROOT/Configs/"}
+                deploy_path_excluded "$rel" && continue
                 deploy_one "$rel" "$HOME/$rel" || failed=1
                 count=$((count + 1))
             done < <(find "$dir_abs" -type f -print0)
         else
+            deploy_path_excluded "$line" && continue
             deploy_one "$line" "$HOME/$line" || failed=1
             count=$((count + 1))
         fi

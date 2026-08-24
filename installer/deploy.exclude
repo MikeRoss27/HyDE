@@ -1,0 +1,22 @@
+# Paths present under a recursively deployed directory but intentionally kept
+# out of the live home. Patterns use Bash [[ value == pattern ]] matching.
+
+# The personal layout is obsolete and incompatible with the generated dynamic
+# pin group. Layout 14 is the live choice; waybar.py ignores personal as well.
+.config/waybar/layouts/personal.jsonc
+
+# Old per-user copies of modules already provided by the canonical
+# .local/share/waybar module set. Deploying both makes include order decide
+# which definition wins.
+.config/waybar/modules/custom-power.jsonc
+.config/waybar/modules/custom-cliphist.jsonc
+.config/waybar/modules/custom-hyde-menu.jsonc
+.config/waybar/modules/custom-theme.jsonc
+.config/waybar/modules/custom-spotify.jsonc
+.config/waybar/modules/custom-keybindhint.jsonc
+.config/waybar/modules/custom-wallchange.jsonc
+.config/waybar/modules/custom-wbar.jsonc
+
+# Runtime bytecode is never deployment input.
+*/__pycache__/*
+*.pyc

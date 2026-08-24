@@ -130,11 +130,16 @@ case "$output_required" in
 *) fail "a failed color/hypr.sh (the REQUIRED step) was not propagated as fatal: $output_required" ;;
 esac
 
-# The caller in color.set.sh must still treat a nonzero return as fatal -
-# only the function's own return-value correctness changed, not the
-# caller's fatal handling of it (no 'command || true' hack expected).
-grep -q 'if ! load_dconf_kdeglobals; then' "$color_set" ||
-    fail "$color_set no longer gates wallbash rendering on load_dconf_kdeglobals - a genuinely required failure could now render templates against an incomplete colour environment"
+# The caller intentionally follows upstream and continues rendering. A hard
+# gate here can leave the theme switch half-applied: staterc points at the new
+# theme while generated Waybar/GTK colour state remains on the previous one.
+# Keep testing the function's meaningful return value above, but also guard the
+# deliberate call-site policy recorded by commit 3a046b68.
+grep -qx 'load_dconf_kdeglobals' "$color_set" ||
+    fail "$color_set no longer calls load_dconf_kdeglobals unconditionally before wallbash rendering"
+if grep -q 'if ! load_dconf_kdeglobals; then' "$color_set"; then
+    fail "$color_set restored the hard wallbash gate that can leave a theme switch half-applied"
+fi
 
 # --- 5: after a real repair, the generated theme CSS stays valid ---
 # installer/lib.sh already defines the exact semantic checks runtime.sh and
