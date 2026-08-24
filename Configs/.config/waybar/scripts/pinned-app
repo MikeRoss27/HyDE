@@ -1,71 +1,278 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+"""Manage persistent Waybar pins from installed desktop entries."""
 
-set -u
+from __future__ import annotations
 
-app_key="${1:-}"
-action="${2:-toggle}"
+import configparser
+import json
+import locale
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
-case "$app_key" in
-  browser)
-    app_class="brave-browser"
-    app_name="Brave"
-    app_icon=""
-    launch=(flatpak run com.brave.Browser)
-    ;;
-  code)
-    app_class="code"
-    app_name="Visual Studio Code"
-    app_icon="󰨞"
-    launch=(flatpak run com.visualstudio.code)
-    ;;
-  zed)
-    app_class="dev.zed.Zed"
-    app_name="Zed"
-    app_icon="󰰭"
-    launch=(zeditor)
-    ;;
-  files)
-    app_class="org.kde.dolphin"
-    app_name="Dolphin"
-    app_icon=""
-    launch=(dolphin)
-    ;;
-  terminal)
-    app_class="kitty"
-    app_name="Kitty"
-    app_icon=""
-    launch=(kitty)
-    ;;
-  *)
-    exit 2
-    ;;
-esac
+SLOTS = 7
+STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "hyde/waybar-pins.json"
+UNIT = f"hyde-{os.environ.get('XDG_SESSION_DESKTOP', 'Hyprland')}-bar.service"
+APP_DIRS = [
+    Path.home() / ".local/share/applications",
+    Path.home() / ".local/share/flatpak/exports/share/applications",
+    Path("/var/lib/flatpak/exports/share/applications"),
+    Path("/usr/local/share/applications"),
+    Path("/usr/share/applications"),
+]
+DEFAULTS = [
+    "com.brave.Browser.desktop", "com.visualstudio.code.desktop",
+    "org.kde.dolphin.desktop", "kitty.desktop", "dev.zed.Zed.desktop",
+]
+GLYPHS = {
+    "com.brave.browser.desktop": "", "com.visualstudio.code.desktop": "󰨞",
+    "org.kde.dolphin.desktop": "", "kitty.desktop": "",
+    "dev.zed.zed.desktop": "󰰭", "firefox.desktop": "󰈹",
+    "com.discordapp.discord.desktop": "", "com.spotify.client.desktop": "",
+    "com.bitwarden.desktop.desktop": "󰌆", "org.localsend.localsend_app.desktop": "󰒍",
+}
+ALIASES = {
+    "com.brave.browser.desktop": ["brave-browser"],
+    "com.visualstudio.code.desktop": ["code"],
+    "org.kde.dolphin.desktop": ["org.kde.dolphin", "dolphin"],
+    "kitty.desktop": ["kitty"], "dev.zed.zed.desktop": ["dev.zed.Zed", "zed"],
+}
 
-is_running=false
-if hyprctl clients -j 2>/dev/null | jq -e --arg class "$app_class" \
-  'any(.[]; .class == $class or .initialClass == $class)' >/dev/null; then
-  is_running=true
-fi
 
-if [[ "$action" == "status" ]]; then
-  if $is_running; then
-    state="running"
-    hint="ouverte — clic pour afficher"
-  else
-    state="pinned"
-    hint="épinglée — clic pour lancer"
-  fi
+def atomic_json(path: Path, data: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(data, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        os.replace(temporary, path)
+    except Exception:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
-  jq -cn \
-    --arg text "$app_icon" \
-    --arg tooltip "$app_name · $hint" \
-    --arg class "$state" \
-    '{text: $text, tooltip: $tooltip, class: $class}'
-  exit 0
-fi
 
-if $is_running; then
-  hyprctl dispatch focuswindow "class:^(${app_class})$" >/dev/null
-else
-  setsid -f "${launch[@]}" >/dev/null 2>&1
-fi
+def translated_name(section: configparser.SectionProxy) -> str:
+    lang = (locale.getlocale()[0] or "").replace("-", "_")
+    keys = ([f"Name[{lang}]", f"Name[{lang.split('_')[0]}]"] if lang else []) + ["Name"]
+    return next((section.get(key, "").strip() for key in keys if section.get(key, "").strip()), "")
+
+
+def installed_apps() -> dict[str, dict[str, object]]:
+    paths = {}
+    for directory in APP_DIRS:
+        if directory.is_dir():
+            for path in sorted(directory.glob("*.desktop")):
+                paths.setdefault(path.name, path.resolve())
+
+    apps = {}
+    for desktop_id, path in paths.items():
+        parser = configparser.ConfigParser(interpolation=None, strict=False)
+        parser.optionxform = str
+        try:
+            parser.read(path, encoding="utf-8")
+            entry = parser["Desktop Entry"]
+        except (OSError, KeyError, configparser.Error):
+            continue
+        if entry.get("Type", "Application") != "Application" or \
+                entry.get("Hidden", "false").lower() == "true" or \
+                entry.get("NoDisplay", "false").lower() == "true":
+            continue
+        name = translated_name(entry)
+        if not name or not entry.get("Exec", "").strip():
+            continue
+        classes = list(ALIASES.get(desktop_id.lower(), []))
+        for value in (entry.get("StartupWMClass", ""), entry.get("X-Flatpak", ""),
+                      desktop_id.removesuffix(".desktop")):
+            if value.strip() and value.strip() not in classes:
+                classes.append(value.strip())
+        apps[desktop_id] = {
+            "id": desktop_id, "name": name,
+            "icon": entry.get("Icon", "application-x-executable").strip(),
+            "categories": entry.get("Categories", "").split(";"), "classes": classes,
+        }
+    return apps
+
+
+def load_state(apps: dict[str, dict[str, object]]) -> dict[str, object]:
+    try:
+        slots = json.loads(STATE.read_text(encoding="utf-8"))["slots"]
+        if not isinstance(slots, list):
+            raise ValueError
+        slots = [item if isinstance(item, str) and item in apps else None for item in slots]
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        slots = [item for item in DEFAULTS if item in apps]
+    slots = (slots + [None] * SLOTS)[:SLOTS]
+    state = {"version": 1, "slots": slots}
+    if not STATE.exists():
+        atomic_json(STATE, state)
+    return state
+
+
+def signal_bar() -> None:
+    subprocess.run(
+        ["systemctl", "--user", "kill", "--kill-whom=main", "-s", "RTMIN+10", UNIT],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+    )
+
+
+def save(state: dict[str, object]) -> None:
+    atomic_json(STATE, state)
+    signal_bar()
+
+
+def normal(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+
+def hypr_clients(command: str = "clients") -> list[dict[str, object]]:
+    try:
+        result = subprocess.run(["hyprctl", command, "-j"], capture_output=True, text=True,
+                                timeout=2, check=True)
+        data = json.loads(result.stdout)
+        return data if isinstance(data, list) else [data]
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return []
+
+
+def match(entry: dict[str, object], windows: list[dict[str, object]] | None = None):
+    expected = {normal(str(item)) for item in entry["classes"] if item}
+    for window in windows if windows is not None else hypr_clients():
+        actual = {normal(str(window.get("class", ""))), normal(str(window.get("initialClass", "")))}
+        if expected & actual:
+            return window
+    return None
+
+
+def glyph(entry: dict[str, object]) -> str:
+    known = GLYPHS.get(str(entry["id"]).lower())
+    if known:
+        return known
+    categories = set(entry["categories"])
+    for names, symbol in [
+        ({"WebBrowser", "Network"}, "󰖟"), ({"Development", "IDE"}, "󰅩"),
+        ({"TerminalEmulator"}, ""), ({"FileManager"}, ""),
+        ({"AudioVideo", "Audio", "Video"}, "󰎆"), ({"Game"}, ""),
+        ({"Graphics", "Photography"}, "󰏘"), ({"Office"}, "󰈙"),
+        ({"Settings", "System"}, "󰒓"),
+    ]:
+        if categories & names:
+            return symbol
+    return "󰀻"
+
+
+def rofi_pick(rows: list[tuple[str, str]], prompt: str) -> int | None:
+    if not rows or not shutil.which("rofi"):
+        return None
+    payload = "\n".join(f"{label}\0icon\x1f{icon}" for label, icon in rows) + "\n"
+    result = subprocess.run(
+        ["rofi", "-dmenu", "-i", "-show-icons", "-format", "i", "-p", prompt,
+         "-theme", "clipboard", "-theme-str", "window { width: 620px; } listview { lines: 12; }"],
+        input=payload, capture_output=True, text=True, check=False,
+    )
+    try:
+        choice = int(result.stdout.strip())
+        return choice if 0 <= choice < len(rows) else None
+    except ValueError:
+        return None
+
+
+def index(raw: str) -> int:
+    slot = int(raw) - 1
+    if slot not in range(SLOTS):
+        raise ValueError
+    return slot
+
+
+def status(slot: int, state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
+    desktop_id = state["slots"][slot]
+    if not desktop_id:
+        print('{"text":"","tooltip":"","class":["empty"]}')
+        return
+    entry = apps[desktop_id]
+    running = match(entry) is not None
+    output = {
+        "text": glyph(entry), "alt": desktop_id,
+        "class": ["pinned-app", "running" if running else "pinned"],
+        "tooltip": f"{entry['name']} · {'ouverte' if running else 'épinglée'}\n"
+                   "Clic : ouvrir/afficher · droit : remplacer · milieu : retirer",
+    }
+    print(json.dumps(output, ensure_ascii=False))
+
+
+def choose(slot: int, state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
+    ordered = sorted(apps.values(), key=lambda item: str(item["name"]).casefold())
+    choice = rofi_pick([(str(item["name"]), str(item["icon"])) for item in ordered],
+                       f"Application épinglée · emplacement {slot + 1}")
+    if choice is not None:
+        state["slots"][slot] = ordered[choice]["id"]
+        save(state)
+
+
+def activate(slot: int, state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
+    desktop_id = state["slots"][slot]
+    if not desktop_id:
+        choose(slot, state, apps)
+        return
+    window = match(apps[desktop_id])
+    if window and window.get("address"):
+        subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{window['address']}"], check=False)
+    else:
+        subprocess.Popen(["gtk-launch", desktop_id.removesuffix(".desktop")],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def manage(state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
+    rows = [(f"{number}. {apps[item]['name']}", str(apps[item]["icon"])) if item
+            else (f"{number}. Emplacement libre", "list-add")
+            for number, item in enumerate(state["slots"], 1)]
+    choice = rofi_pick(rows, "Gérer les applications épinglées")
+    if choice is not None:
+        choose(choice, state, apps)
+
+
+def pin_active(state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
+    active = hypr_clients("activewindow")
+    entry = next((item for item in apps.values() if match(item, active)), None)
+    if not entry:
+        subprocess.run(["notify-send", "Applications épinglées",
+                        "Cette fenêtre ne correspond à aucun fichier .desktop."], check=False)
+        return
+    if entry["id"] in state["slots"]:
+        return
+    try:
+        target = state["slots"].index(None)
+    except ValueError:
+        rows = [(f"Remplacer {apps[item]['name']}", str(apps[item]["icon"])) for item in state["slots"]]
+        target = rofi_pick(rows, f"Épingler {entry['name']}")
+        if target is None:
+            return
+    state["slots"][target] = entry["id"]
+    save(state)
+
+
+def main() -> int:
+    apps, action = installed_apps(), sys.argv[1] if len(sys.argv) > 1 else "manage"
+    state = load_state(apps)
+    try:
+        if action == "status": status(index(sys.argv[2]), state, apps)
+        elif action == "activate": activate(index(sys.argv[2]), state, apps)
+        elif action == "choose": choose(index(sys.argv[2]), state, apps)
+        elif action == "unpin": state["slots"].__setitem__(index(sys.argv[2]), None); save(state)
+        elif action == "manage": manage(state, apps)
+        elif action == "pin-active": pin_active(state, apps)
+        elif action == "list":
+            for number, item in enumerate(state["slots"], 1): print(number, item or "-", sep="\t")
+        else: raise ValueError
+    except (IndexError, ValueError):
+        print("Usage: pinned-app {status|activate|choose|unpin} SLOT | manage | pin-active | list", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

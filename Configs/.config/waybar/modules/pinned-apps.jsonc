@@ -1,48 +1,96 @@
 {
-  "custom/pin-browser": {
-    "exec": "$HOME/.config/waybar/scripts/pinned-app browser status",
-    "return-type": "json",
-    "interval": 2,
-    "on-click": "$HOME/.config/waybar/scripts/pinned-app browser"
-  },
-  "custom/pin-code": {
-    "exec": "$HOME/.config/waybar/scripts/pinned-app code status",
-    "return-type": "json",
-    "interval": 2,
-    "on-click": "$HOME/.config/waybar/scripts/pinned-app code"
-  },
-  "custom/pin-zed": {
-    "exec": "$HOME/.config/waybar/scripts/pinned-app zed status",
-    "return-type": "json",
-    "interval": 2,
-    "on-click": "$HOME/.config/waybar/scripts/pinned-app zed"
-  },
-  "custom/pin-files": {
-    "exec": "$HOME/.config/waybar/scripts/pinned-app files status",
-    "return-type": "json",
-    "interval": 2,
-    "on-click": "$HOME/.config/waybar/scripts/pinned-app files"
-  },
-  "custom/pin-terminal": {
-    "exec": "$HOME/.config/waybar/scripts/pinned-app terminal status",
-    "return-type": "json",
-    "interval": 2,
-    "on-click": "$HOME/.config/waybar/scripts/pinned-app terminal"
-  },
-  "wlr/taskbar#running": {
-    "all-outputs": true,
-    "format": "{icon}",
-    "icon-size": 18,
-    "spacing": 4,
-    "tooltip-format": "{title}",
-    "on-click": "activate",
-    "on-click-middle": "close",
-    "ignore-list": [
-      "brave-browser",
-      "code",
-      "dev.zed.Zed",
-      "org.kde.dolphin",
-      "kitty"
-    ]
-  }
+    "group/pinned-apps": {
+        "orientation": "inherit",
+        "modules": [
+            "custom/pin-1",
+            "custom/pin-2",
+            "custom/pin-3",
+            "custom/pin-4",
+            "custom/pin-5",
+            "custom/pin-6",
+            "custom/pin-7",
+            "custom/pin-manager"
+        ]
+    },
+
+    "custom/pin-1": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 1",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 1",
+        "on-click-right": "hyde-shell pinned-app choose 1",
+        "on-click-middle": "hyde-shell pinned-app unpin 1"
+    },
+    "custom/pin-2": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 2",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 2",
+        "on-click-right": "hyde-shell pinned-app choose 2",
+        "on-click-middle": "hyde-shell pinned-app unpin 2"
+    },
+    "custom/pin-3": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 3",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 3",
+        "on-click-right": "hyde-shell pinned-app choose 3",
+        "on-click-middle": "hyde-shell pinned-app unpin 3"
+    },
+    "custom/pin-4": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 4",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 4",
+        "on-click-right": "hyde-shell pinned-app choose 4",
+        "on-click-middle": "hyde-shell pinned-app unpin 4"
+    },
+    "custom/pin-5": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 5",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 5",
+        "on-click-right": "hyde-shell pinned-app choose 5",
+        "on-click-middle": "hyde-shell pinned-app unpin 5"
+    },
+    "custom/pin-6": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 6",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 6",
+        "on-click-right": "hyde-shell pinned-app choose 6",
+        "on-click-middle": "hyde-shell pinned-app unpin 6"
+    },
+    "custom/pin-7": {
+        "return-type": "json",
+        "exec": "hyde-shell pinned-app status 7",
+        "interval": "once",
+        "signal": 10,
+        "exec-on-event": true,
+        "on-click": "hyde-shell pinned-app activate 7",
+        "on-click-right": "hyde-shell pinned-app choose 7",
+        "on-click-middle": "hyde-shell pinned-app unpin 7"
+    },
+
+    "custom/pin-manager": {
+        "format": "{}",
+        "exec": "printf ''",
+        "interval": "once",
+        "tooltip": true,
+        "tooltip-format": "Gérer les applications épinglées\nClic : choisir un emplacement · clic droit : épingler la fenêtre active",
+        "on-click": "hyde-shell pinned-app manage",
+        "on-click-right": "hyde-shell pinned-app pin-active"
+    }
 }

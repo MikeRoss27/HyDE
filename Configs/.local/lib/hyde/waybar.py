@@ -54,7 +54,7 @@ LAYOUT_DIRS = [
     os.path.join("usr", "share", "waybar", "layouts"),
 ]
 
-LAYOUT_IGNORE = ["test.jsonc", "dock#sample.jsonc"]
+LAYOUT_IGNORE = ["test.jsonc", "dock#sample.jsonc", "personal.jsonc"]
 
 STYLE_DIRS = [
     os.path.join(str(xdg_config_home()), "waybar", "styles"),
@@ -72,6 +72,8 @@ CONFIG_JSONC = Path(os.path.join(str(xdg_config_home()), "waybar", "config.jsonc
 STATE_FILE = Path(os.path.join(str(xdg_state_home()), "hyde", "staterc"))
 HYDE_CONFIG = Path(os.path.join(str(xdg_state_home()), "hyde", "config"))
 UNIT_NAME = f"hyde-{os.environ.get('XDG_SESSION_DESKTOP', 'unknown')}-bar.service"
+PINNED_APPS_GROUP = "group/pinned-apps"
+PINNED_APPS_INCLUDE = "$XDG_CONFIG_HOME/waybar/modules/pinned-apps.jsonc"
 
 
 def source_env_file(filepath):
@@ -91,6 +93,143 @@ def get_file_hash(filepath):
         while chunk := file.read(8192):
             sha256.update(chunk)
     return sha256.hexdigest()
+
+
+def load_jsonc(filepath):
+    """Load Waybar JSONC without depending on a third-party JSON5 parser."""
+    text = Path(filepath).read_text(encoding="utf-8")
+    output = []
+    index = 0
+    in_string = False
+    escaped = False
+
+    while index < len(text):
+        char = text[index]
+        following = text[index + 1] if index + 1 < len(text) else ""
+
+        if in_string:
+            output.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+
+        if char == '"':
+            in_string = True
+            output.append(char)
+            index += 1
+            continue
+
+        if char == "/" and following == "/":
+            index += 2
+            while index < len(text) and text[index] not in "\r\n":
+                index += 1
+            continue
+
+        if char == "/" and following == "*":
+            index += 2
+            while index + 1 < len(text) and text[index:index + 2] != "*/":
+                if text[index] in "\r\n":
+                    output.append(text[index])
+                index += 1
+            index += 2
+            continue
+
+        output.append(char)
+        index += 1
+
+    return json.loads("".join(output))
+
+
+def extend_layout_with_pinned_apps(data):
+    """Add the personal pinned-app group without modifying layout presets."""
+    bars = data if isinstance(data, list) else [data]
+
+    for bar in bars:
+        if not isinstance(bar, dict):
+            continue
+
+        module_lists = []
+        for key in ("modules-left", "modules-center", "modules-right"):
+            modules = bar.get(key)
+            if isinstance(modules, list):
+                while PINNED_APPS_GROUP in modules:
+                    modules.remove(PINNED_APPS_GROUP)
+                module_lists.append(modules)
+
+        def contains_taskbar(module_name):
+            if isinstance(module_name, str) and module_name.startswith("wlr/taskbar"):
+                return True
+            group = bar.get(module_name) if isinstance(module_name, str) else None
+            return isinstance(group, dict) and any(
+                isinstance(item, str) and item.startswith("wlr/taskbar")
+                for item in group.get("modules", [])
+            )
+
+        target = None
+        insert_at = 0
+        for modules in module_lists:
+            taskbar_index = next(
+                (
+                    position
+                    for position, module in enumerate(modules)
+                    if contains_taskbar(module)
+                ),
+                None,
+            )
+            if taskbar_index is not None:
+                target = modules
+                insert_at = taskbar_index
+                break
+
+        if target is None:
+            target = bar.setdefault("modules-center", [])
+            if not isinstance(target, list):
+                logger.warning("Cannot add pinned apps: modules-center is not a list")
+                continue
+            insert_at = len(target)
+
+        target.insert(insert_at, PINNED_APPS_GROUP)
+
+        includes = bar.setdefault("include", [])
+        if isinstance(includes, list):
+            modules_already_included = any(
+                isinstance(item, str)
+                and ("waybar/modules/*" in item or item == PINNED_APPS_INCLUDE)
+                for item in includes
+            )
+            if not modules_already_included:
+                includes.append(PINNED_APPS_INCLUDE)
+
+    return data
+
+
+def write_layout_config(layout_path, destination=CONFIG_JSONC):
+    """Render a preset plus personal extensions into the active config."""
+    data = extend_layout_with_pinned_apps(load_jsonc(layout_path))
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_name(f".{destination.name}.tmp")
+    temporary.write_text(
+        json.dumps(data, ensure_ascii=False, indent=4) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary, destination)
+
+
+def config_matches_layout(config_path, layout_path):
+    """Compare the active generated config with an extended source layout."""
+    try:
+        current = load_jsonc(config_path)
+        expected = extend_layout_with_pinned_apps(load_jsonc(layout_path))
+        return current == expected
+    except (OSError, json.JSONDecodeError, TypeError) as error:
+        logger.debug(f"Could not compare Waybar layout data: {error}")
+        return False
 
 
 def find_layout_files():
@@ -197,16 +336,15 @@ def get_current_layout_from_config():
         set_state_value("WAYBAR_LAYOUT_PATH", layout)
         set_state_value("WAYBAR_LAYOUT_NAME", layout_name)
 
-        shutil.copyfile(layout, CONFIG_JSONC)
+        write_layout_config(layout)
         logger.debug(f"Created config.jsonc with first layout: {layout}")
         return layout
 
     # Try hash comparison for existing config
-    config_hash = get_file_hash(CONFIG_JSONC)
     layout = None
 
     for layout_file in layouts:
-        if get_file_hash(layout_file) == config_hash:
+        if config_matches_layout(CONFIG_JSONC, layout_file):
             logger.debug(f"Found current layout by hash: {layout_file}")
             layout_name = os.path.basename(layout_file).replace(".jsonc", "")
             set_state_value("WAYBAR_LAYOUT_PATH", layout_file)
@@ -225,7 +363,7 @@ def get_current_layout_from_config():
         set_state_value("WAYBAR_LAYOUT_PATH", layout)
         set_state_value("WAYBAR_LAYOUT_NAME", layout_name)
 
-        shutil.copyfile(layout, CONFIG_JSONC)
+        write_layout_config(layout)
         logger.debug(f"Updated config.jsonc with layout: {layout}")
 
     return layout
@@ -323,7 +461,7 @@ def _apply_layout(layout_path, style_path, notify_label):
     set_state_value("WAYBAR_STYLE_PATH", style_path)
 
     style_filepath = os.path.join(str(xdg_config_home()), "waybar", "style.css")
-    shutil.copyfile(layout_path, CONFIG_JSONC)
+    write_layout_config(layout_path)
     write_style_file(style_filepath, style_path)
     update_icon_size()
     update_border_radius()
@@ -1100,7 +1238,7 @@ def generate_includes():
 
 def update_config(config_path):
     config_jsonc = os.path.join(str(xdg_config_home()), "waybar", "config.jsonc")
-    shutil.copyfile(config_path, config_jsonc)
+    write_layout_config(config_path, config_jsonc)
     logger.debug(f"Successfully copied config from '{config_path}' to '{config_jsonc}'")
 
 
@@ -1172,19 +1310,16 @@ def main():
             if not CONFIG_JSONC.exists():
                 logger.debug("Config file missing, creating from layout path")
                 CONFIG_JSONC.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(layout_path, CONFIG_JSONC)
+                write_layout_config(layout_path)
                 logger.debug("Created config.jsonc from state file layout")
             else:
-                config_hash = get_file_hash(CONFIG_JSONC)
-                layout_hash = get_file_hash(layout_path)
-
-                if config_hash != layout_hash:
+                if not config_matches_layout(CONFIG_JSONC, layout_path):
                     logger.debug("Config hash differs from layout hash, creating backup")
                     layout_name = os.path.basename(layout_path).replace(".jsonc", "")
                     backup_layout(layout_name)
 
                 try:
-                    shutil.copyfile(layout_path, CONFIG_JSONC)
+                    write_layout_config(layout_path)
                     logger.debug("Updated config.jsonc with layout from state file")
                 except Exception as e:
                     logger.error(f"Failed to update config.jsonc: {e}")
@@ -1205,10 +1340,10 @@ def main():
                     CONFIG_JSONC.parent.mkdir(parents=True, exist_ok=True)
 
                     if CONFIG_JSONC.exists():
-                        if get_file_hash(CONFIG_JSONC) != get_file_hash(found_layout):
+                        if not config_matches_layout(CONFIG_JSONC, found_layout):
                             backup_layout(layout_name)
 
-                    shutil.copyfile(found_layout, CONFIG_JSONC)
+                    write_layout_config(found_layout)
                     logger.debug("Updated config.jsonc with layout by name")
                 else:
                     logger.error(f"Could not find layout by name: {layout_name}")
@@ -1220,7 +1355,7 @@ def main():
                         set_state_value("WAYBAR_LAYOUT_PATH", first_layout)
                         set_state_value("WAYBAR_LAYOUT_NAME", first_layout_name)
                         CONFIG_JSONC.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copyfile(first_layout, CONFIG_JSONC)
+                        write_layout_config(first_layout)
                         logger.debug(f"Used first available layout: {first_layout}")
         else:
             # No layout path in state file or layout path is empty
@@ -1228,7 +1363,7 @@ def main():
             current_layout = get_current_layout_from_config()
             if current_layout:
                 CONFIG_JSONC.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(current_layout, CONFIG_JSONC)
+                write_layout_config(current_layout)
                 logger.debug(f"Created config.jsonc from determined layout: {current_layout}")
     else:
         logger.debug("State file not found, creating it")

@@ -4,6 +4,11 @@ set -u
 
 action="${1:-}"
 
+recording_active() {
+  pgrep -x wf-recorder >/dev/null 2>&1 ||
+    pgrep -x wl-screenrec >/dev/null 2>&1
+}
+
 case "$action" in
   wifi-toggle)
     if [[ "${SWAYNC_TOGGLE_STATE:-false}" == "true" ]]; then
@@ -50,6 +55,19 @@ case "$action" in
     ;;
   screenshot)
     grimblast --notify copysave area
+    ;;
+  record-toggle)
+    requested_state="${SWAYNC_TOGGLE_STATE:-toggle}"
+    if [[ "$requested_state" == "true" ]] ||
+      { [[ "$requested_state" == "toggle" ]] && ! recording_active; }; then
+      swaync-client --close-panel
+      setsid -f hyde-shell screenrecord --start >/dev/null 2>&1
+    elif recording_active; then
+      hyde-shell screenrecord --quit
+    fi
+    ;;
+  record-state)
+    recording_active && echo true || echo false
     ;;
   clipboard)
     hyde-shell cliphist --copy

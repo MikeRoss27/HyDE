@@ -13,7 +13,7 @@ lib_dir="$REPO_ROOT/Configs/.local/lib/hyde"
 probe() {
     HOME="$work_dir/home" \
         XDG_CONFIG_HOME="$work_dir/home/.config" \
-        bash -c ". '$lib_dir/globalcontrol.sh' >/dev/null 2>&1; get_monitor_scale '$1'" 2>/dev/null
+        bash -c "hyprctl() { return 1; }; export -f hyprctl; . '$lib_dir/globalcontrol.sh' >/dev/null 2>&1; get_monitor_scale '$1'" 2>/dev/null
 }
 
 work_dir=$(mktemp -d) || exit 1

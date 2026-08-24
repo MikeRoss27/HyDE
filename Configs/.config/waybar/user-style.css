@@ -4,11 +4,14 @@
     font-size: 13px;
 }
 
-#custom-pin-browser,
-#custom-pin-code,
-#custom-pin-zed,
-#custom-pin-files,
-#custom-pin-terminal {
+#custom-pin-1,
+#custom-pin-2,
+#custom-pin-3,
+#custom-pin-4,
+#custom-pin-5,
+#custom-pin-6,
+#custom-pin-7,
+#custom-pin-manager {
     min-width: 28px;
     margin: 5px 3px;
     padding: 0 9px;
@@ -18,23 +21,46 @@
     transition: all 180ms ease;
 }
 
-#custom-pin-browser:hover,
-#custom-pin-code:hover,
-#custom-pin-zed:hover,
-#custom-pin-files:hover,
-#custom-pin-terminal:hover {
+#custom-pin-1:hover,
+#custom-pin-2:hover,
+#custom-pin-3:hover,
+#custom-pin-4:hover,
+#custom-pin-5:hover,
+#custom-pin-6:hover,
+#custom-pin-7:hover,
+#custom-pin-manager:hover {
     color: @wb-hvr-fg;
     background: @wb-hvr-bg;
 }
 
-#custom-pin-browser.running,
-#custom-pin-code.running,
-#custom-pin-zed.running,
-#custom-pin-files.running,
-#custom-pin-terminal.running {
+#custom-pin-1.running,
+#custom-pin-2.running,
+#custom-pin-3.running,
+#custom-pin-4.running,
+#custom-pin-5.running,
+#custom-pin-6.running,
+#custom-pin-7.running {
     color: @wb-act-fg;
     background: @wb-act-bg;
     box-shadow: inset 0 -2px alpha(@wb-act-fg, 0.65);
+}
+
+#custom-pin-manager {
+    color: alpha(@main-fg, 0.65);
+    background: transparent;
+}
+
+#custom-pin-1.empty,
+#custom-pin-2.empty,
+#custom-pin-3.empty,
+#custom-pin-4.empty,
+#custom-pin-5.empty,
+#custom-pin-6.empty,
+#custom-pin-7.empty {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
 }
 
 #taskbar {

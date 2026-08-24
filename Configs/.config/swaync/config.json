@@ -107,6 +107,12 @@
           "command": "swaync-actions screenshot"
         },
         {
+          "label": "",
+          "type": "toggle",
+          "command": "swaync-actions record-toggle",
+          "update-command": "swaync-actions record-state"
+        },
+        {
           "label": "",
           "command": "swaync-actions clipboard"
         },
@@ -123,6 +129,10 @@
         {
           "label": "⏻",
           "command": "swaync-actions power-menu"
+        },
+        {
+          "label": "󰒓",
+          "command": "hyde-shell control-center"
         }
       ]
     }
