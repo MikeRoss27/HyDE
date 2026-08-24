@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+
+set -u
+
+sanitize_integer() {
+  local value="$1" fallback="$2"
+  [[ "$value" =~ ^[0-9]+$ ]] && printf '%s' "$value" || printf '%s' "$fallback"
+}
+
+low_threshold="$(sanitize_integer "${BATTERY_NOTIFY_THRESHOLD_LOW:-20}" 20)"
+critical_threshold="$(sanitize_integer "${BATTERY_NOTIFY_THRESHOLD_CRITICAL:-5}" 5)"
+unplug_threshold="$(sanitize_integer "${BATTERY_NOTIFY_THRESHOLD_UNPLUG:-80}" 80)"
+notify_interval="$(sanitize_integer "${BATTERY_NOTIFY_INTERVAL:-5}" 5)"
+poll_interval="$(sanitize_integer "${BATTERY_NOTIFY_POLL_INTERVAL:-5}" 5)"
+(( poll_interval > 0 )) || poll_interval=5
+
+shopt -s nullglob
+batteries=(/sys/class/power_supply/BAT*)
+(( ${#batteries[@]} > 0 )) || exit 0
+
+send_notification() {
+  local urgency="$1" title="$2" body="$3" icon="$4"
+  notify-send \
+    --app-name="HyDE Battery" \
+    --urgency="$urgency" \
+    --hint=string:x-canonical-private-synchronous:hyde-battery \
+    --icon="$icon" \
+    "$title" "$body"
+}
+
+run_hook() {
+  local command="$1"
+  [[ -n "$command" ]] || return 0
+  setsid -f sh -c "$command" >/dev/null 2>&1
+}
+
+read_battery() {
+  local battery value battery_status total=0 count=0
+  local saw_charging=false saw_discharging=false saw_full=false
+
+  for battery in "${batteries[@]}"; do
+    [[ -r "$battery/capacity" && -r "$battery/status" ]] || continue
+    read -r value <"$battery/capacity"
+    [[ "$value" =~ ^[0-9]+$ ]] || continue
+    total=$((total + value))
+    count=$((count + 1))
+    read -r battery_status <"$battery/status"
+    case "$battery_status" in
+      Discharging) saw_discharging=true ;;
+      Charging) saw_charging=true ;;
+      Full) saw_full=true ;;
+    esac
+  done
+
+  (( count > 0 )) || return 1
+  percentage=$((total / count))
+  if $saw_discharging; then
+    status="Discharging"
+  elif $saw_charging; then
+    status="Charging"
+  elif $saw_full; then
+    status="Full"
+  else
+    status="Not charging"
+  fi
+}
+
+read_battery || exit 0
+
+if [[ "${1:-}" == "--once" ]]; then
+  printf '%s %s%%\n' "$status" "$percentage"
+  exit 0
+fi
+
+previous_status="$status"
+last_low_notification=-1
+critical_notified=false
+high_notified=false
+full_notified=false
+
+while sleep "$poll_interval"; do
+  read_battery || continue
+
+  if [[ "$status" != "$previous_status" ]]; then
+    case "$status" in
+      Discharging)
+        urgency="normal"
+        (( percentage <= low_threshold )) && urgency="critical"
+        send_notification "$urgency" "Chargeur débranché" \
+          "Batterie à ${percentage} %." "battery-level-${percentage}-symbolic"
+        run_hook "${BATTERY_NOTIFY_EXECUTE_DISCHARGING:-}"
+        high_notified=false
+        full_notified=false
+        ;;
+      Charging)
+        send_notification "normal" "Chargeur branché" \
+          "Batterie à ${percentage} %." "battery-good-charging-symbolic"
+        run_hook "${BATTERY_NOTIFY_EXECUTE_CHARGING:-}"
+        critical_notified=false
+        last_low_notification=-1
+        ;;
+      Full)
+        if ! $full_notified; then
+          send_notification "normal" "Batterie pleine" \
+            "Tu peux débrancher le chargeur." "battery-full-charging-symbolic"
+          full_notified=true
+        fi
+        ;;
+    esac
+    previous_status="$status"
+  fi
+
+  if [[ "$status" == "Discharging" ]]; then
+    if (( percentage <= critical_threshold )); then
+      if ! $critical_notified; then
+        send_notification "critical" "Batterie critique" \
+          "Plus que ${percentage} %. Branche le chargeur immédiatement." \
+          "battery-caution-symbolic"
+        run_hook "${BATTERY_NOTIFY_EXECUTE_CRITICAL:-}"
+        critical_notified=true
+      fi
+    elif (( percentage <= low_threshold )) && \
+      (( last_low_notification < 0 || last_low_notification - percentage >= notify_interval )); then
+      send_notification "critical" "Batterie faible" \
+        "Batterie à ${percentage} %. Branche le chargeur." \
+        "battery-low-symbolic"
+      run_hook "${BATTERY_NOTIFY_EXECUTE_LOW:-}"
+      last_low_notification=$percentage
+    fi
+  elif [[ "$status" == "Charging" ]] && (( percentage >= unplug_threshold )); then
+    if ! $high_notified; then
+      send_notification "normal" "Batterie suffisamment chargée" \
+        "Batterie à ${percentage} %." "battery-full-charging-symbolic"
+      run_hook "${BATTERY_NOTIFY_EXECUTE_UNPLUG:-}"
+      high_notified=true
+    fi
+  fi
+done

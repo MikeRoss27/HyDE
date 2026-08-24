@@ -48,7 +48,7 @@ hc.start.wallpaper =
 hc.start.bar = "hyde-shell app -u " .. unt .. "-bar.service -t " .. svc .. " -- waybar"
 hc.start.notifications = "systemctl --user start swaync.service"
 hc.start.automount = "hyde-shell app -u " .. unt .. "-automount.service -t " .. svc .. " -- udiskie --tray --automount --notify"
-hc.start.battery_notify = "hyde-shell app -u " .. unt .. "-battery-notify.service -t " .. svc .. " -- batterynotify.lua"
+hc.start.battery_notify = "hyde-shell app -u " .. unt .. "-battery-notify.service -t " .. svc .. " -- battery-notify"
 hc.start.applet_network_manager =
     "hyde-shell app -u " .. unt .. "-network-manager-applet.service -t " .. svc .. " -- nm-applet --indicator"
 hc.start.applet_bluetooth =

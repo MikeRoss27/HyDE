@@ -53,7 +53,25 @@ end
 -- laptop panel even though it sits to the right in real life. Swapped here
 -- to match physical layout.
 hl.monitor({ output = "HDMI-A-1", mode = "1920x1080@60", position = "0x0", scale = 1 })
-hl.monitor({ output = "eDP-1", mode = "1920x1080@144", position = "1920x0", scale = 1 })
+hl.monitor({ output = "eDP-1", mode = "1920x1080@144", position = "1920x0", scale = 1.2 })
+
+-- Toggle a region/full-output recording. The first press opens slurp; the
+-- second stops the recorder and saves the result under Videos/Recordings.
+hl.bind("SUPER + ALT + R", hl.dsp.exec_cmd("swaync-actions record-toggle"), {
+	description = "[Utilities] toggle screen recording",
+})
+
+-- One entry point for workstation settings. SUPER+I is already used by the
+-- master layout, so CTRL is kept to avoid silently replacing that behavior.
+hl.bind("SUPER + CTRL + I", hl.dsp.exec_cmd("hyde-shell control-center"), {
+	description = "[Utilities] open unified settings",
+})
+
+-- Replace HyDE's plain SUPER+TAB window list with an overview-aware wrapper.
+-- It falls back to the same reliable list while no compatible plugin is loaded.
+hl.bind("SUPER + TAB", hl.dsp.exec_cmd("hyde-shell workspace-overview"), {
+	description = "[Window Management] workspace overview",
+})
 
 -- ============================================================================
 -- Input
