@@ -7,6 +7,62 @@ install. This document is a historical record of that audit (why deletion
 was the right call), not a live threat model for code that remains in the
 fork.
 
+## Live login and dual-boot baseline (2026-08-23)
+
+**Superseded (2026-08-25)**: KDE Plasma has since been removed entirely by
+the user (`pacman -Q plasma-desktop plasma-meta` finds nothing) — single-DE
+by design, Hyprland only. `plasmalogin.service` no longer exists; SDDM is
+the active `display-manager.service` (see ROADMAP.md "SDDM live, Plasma
+removed"). The baseline below is a historical snapshot from before that
+change, kept for the record — read it as "what was true then," not current
+state.
+
+The workstation keeps Windows permanently in a dual boot. The Microsoft
+boot files, the shared EFI system partition, and all Windows partitions are
+therefore protected state, not migration leftovers to remove.
+
+- `plasmalogin.service` is the active display manager. No Plasma Login
+  autologin setting was found. Its PAM service includes `system-login`, and
+  the system authentication chain uses `pam_unix` plus `pam_faillock`.
+- Live journal evidence confirmed two incorrect Plasma Login passwords were
+  rejected before a correct password opened the session. A separate
+  incorrect Hyprlock password was also rejected. `/etc/pam.d/hyprlock`
+  includes the standard `login` PAM chain.
+- Hypridle locks before suspend and does not contain the former insecure
+  signal-driven `unlock_cmd`.
+- Secure Boot is enabled, TPM 2.0 is present, and firewalld is active.
+- Linux boots through the active `SHIM with GRUB Secure Boot` entry from the
+  shared EFI partition. `Windows Boot Manager` remains active on that same
+  partition, and `/boot/EFI/Microsoft` is present.
+- Linux root is the dedicated Btrfs partition `/dev/nvme0n1p5`; the Windows
+  partitions are neither mounted nor referenced by Linux's `fstab`.
+- The Linux root volume is not encrypted. AppArmor is installed but disabled
+  by the current kernel configuration. Enabling either is a separate,
+  explicitly approved system/boot project; this fork does not silently touch
+  the kernel command line, initramfs, EFI, partitions, or filesystems.
+
+`hyde-shell security-status` exposes these checks read-only from the unified
+settings menu. It performs no remediation and ends by restating the dual-boot
+invariant.
+
+## Vendored SDDM greeter theme review (qylock, 2026-08-24)
+
+`installer/sddm/themes/{pixel-rainyroom,pixel-cyberpunk}/` vendors two QML
+themes from a third-party GPL-3.0 repo ([Darkkal44/qylock](https://github.com/Darkkal44/qylock),
+commit `f86d3f6`) that will run inside the SDDM greeter process — i.e. before
+any user authenticates, on every boot. Reviewed both themes' `Main.qml`/
+`BackgroundVideo.qml` (the only executable content; `theme.conf`/
+`metadata.desktop` are plain ini) before vendoring:
+`grep -niE "exec|process|xmlhttprequest|openurl|shell|system\(|Qt\.include|import \"http|network"`
+across both files returned no matches other than an unrelated
+`isQuickshell`/`Quickshell` identifier substring. Neither theme makes
+network calls, spawns processes, or loads remote content — `BackgroundVideo.qml`
+plays the bundled local `bg.mp4` via `QtMultimedia.MediaPlayer`, and the
+only privileged calls made are `sddm.login()`/`sddm.reboot()`/
+`sddm.powerOff()`, SDDM's own sanctioned greeter JS API (same surface every
+SDDM theme uses). See ROADMAP.md "SDDM + qylock" entry for the full
+integration decision.
+
 ## System mutation surfaces (stock HyDE installer)
 
 | Surface | Mutated by | Default or opt-in |

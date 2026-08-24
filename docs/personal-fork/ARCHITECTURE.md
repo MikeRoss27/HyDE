@@ -369,8 +369,11 @@ valid enough to load (non-empty, no unresolved `<wallbash_*>` tokens,
 `HYPRLAND_CONFIG` to a readable file,
 Intel stays default compositor GPU with no session-wide NVIDIA
 `__GLX_VENDOR_LIBRARY_NAME`/`GBM_BACKEND`, `xdg-desktop-portal-hyprland`
-installed, `hyde.lua` parses (`luac -p`), KDE Plasma fallback still
-installed. WARN-only, never blocks readiness: `wlogout` missing (AUR,
+installed, `hyde.lua` parses (`luac -p`), SDDM is the active
+`display-manager.service` (single-DE by design since 2026-08-25 — KDE
+Plasma was deliberately removed once Hyprland was confirmed working; the
+gate used to require a Plasma fallback, see ROADMAP.md). WARN-only, never
+blocks readiness: `wlogout` missing (AUR,
 optional), `lgi` unavailable (see the startup-critical audit above - never
 blocks anything that actually needs to start).
 

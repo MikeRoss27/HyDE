@@ -1,5 +1,196 @@
 # Roadmap
 
+## Post-Slice-8 (cont. 5) — SDDM live, Plasma removed: single-DE by design
+
+User confirmed the SDDM/qylock migration below was actually completed
+out-of-band since it was written (`installer/setup-sddm.sh` and
+`installer/migrate-greetd-to-sddm.sh` both ran, live-verified this session:
+`readlink -f /etc/systemd/system/display-manager.service` →
+`sddm.service`, theme `pixel-rainyroom` active) and that KDE Plasma has been
+deliberately uninstalled entirely (`pacman -Q plasma-desktop plasma-meta`
+finds nothing) — the user's stated end goal ("eventually drop KDE Plasma
+entirely," see the greetd/ReGreet entry below) is reached: Hyprland is now
+the only session, by design, already verified by the user before this was
+raised here.
+
+This broke three things still written against the old plasmalogin/KDE
+world, found by live-checking rather than trusting the docs above (which
+were correct when written, stale after the removal):
+
+- `install.sh --check` hard-failed `[NOT READY]` — `installer/validate.sh`'s
+  readiness gate required `plasma-desktop`/`plasma-meta` as a fallback
+  session. **Fixed**: gate now checks that `display-manager.service`
+  resolves to `sddm.service` instead (the actual live login path), not a
+  Plasma fallback that's no longer meant to exist.
+- `Configs/.local/lib/hyde/security-status.sh` still checked
+  `plasmalogin.service`, `/usr/lib/pam.d/plasmalogin`, and
+  `/etc/plasmalogin.conf*` for its "Connexion et verrouillage"/autologin
+  section — all would misreport now that plasmalogin doesn't exist.
+  **Fixed**: checks `sddm.service`, `/etc/pam.d/sddm`, and an
+  `[Autologin]` section under `/etc/sddm.conf.d/` instead.
+- `Configs/.local/lib/hyde/control-center.sh`'s "Réglages" rofi menu had 7
+  of its ~13 entries pointing at KDE System Settings tools
+  (`kcmshell6`, `systemsettings`, `kinfocenter`, `plasma-discover`) —
+  confirmed via `command -v` that **all four are now absent**. **Fixed**:
+  "Gestionnaire de connexion" is now a read-only kitty summary
+  (`systemctl is-active sddm.service` + the active theme file, with the
+  manual `sudo installer/switch-sddm-theme.sh` command printed rather than
+  wired in directly — that script lives under `installer/`, which is
+  dev-checkout-only and never deployed to `$HOME`, so a deployed rofi
+  script can't call it by a reliable path); "Applications par défaut" now
+  opens `mimeapps.list` in the editor instead of `kcm_componentchooser`;
+  "Comptes utilisateurs" (`kcm_users`, no non-KDE equivalent, single-user
+  laptop) and "Tous les réglages KDE" (`systemsettings`, nothing left to
+  open) were dropped rather than faked; "Pare-feu" now shows
+  `firewall-cmd --state`/`--list-all` read-only (`firewall-config` GUI
+  isn't installed); "Sécurité du firmware" now runs `fwupdmgr security`;
+  "Informations système" now runs `fastfetch`; "Mises à jour" now runs
+  `checkupdates` (list-only, no `pacman -Syu` — consistent with this
+  fork's no-automatic-installs rule) — all in a held kitty window, same
+  pattern the menu already used for "Résumé des écrans actifs".
+
+**Verified live**: `bash Configs/.local/lib/hyde/security-status.sh` run
+directly - all "Connexion et verrouillage" lines now read `[OK]` against
+the real SDDM state; `sh -n` on all three edited scripts;
+`./install.sh --check` re-run end to end - now prints `[READY]` (previously
+`[NOT READY]` on the Plasma-fallback line alone, every other check already
+passing). Both live deployed copies under `~/.local/lib/hyde/` were synced
+to match the repo-tracked fix (they run from `$HOME`, not from the
+checkout).
+
+**Not done / left as-is**: `docs/personal-fork/SECURITY.md`'s
+"Live login and dual-boot baseline (2026-08-23)" section still describes
+`plasmalogin.service` as active - left as a historical snapshot (annotated
+with a superseded-by note) rather than rewritten, since it was accurate
+when captured. `.audit/` (untracked swaync screenshots) and
+`Configs/.config/autostart/` (untracked KDE Connect + pam_kwallet autostart
+entries) were flagged during this session's audit but not touched - the
+user hasn't said whether the autostart entries are wanted going forward
+now that Plasma is gone.
+
+## Post-Slice-8 (cont. 4) — SDDM + qylock (pixel-rainyroom/pixel-cyberpunk) login screen, replacing greetd/ReGreet
+
+User wants a real animated login screen (video background, custom QML UI)
+instead of ReGreet's plain GTK4 form, specifically the `pixel-rainyroom`
+theme (default) and `pixel-cyberpunk` theme (switchable) from
+[Darkkal44/qylock](https://github.com/Darkkal44/qylock) (GPL-3.0), properly
+integrated into this fork rather than installed alongside it.
+
+**Architecture decision, researched before touching anything**: migrate
+from greetd/ReGreet back to **SDDM**, Wayland-native, no KDE/Plasma
+install. qylock's themes are Qt6/QML `sddm-theme`s (`metadata.desktop`
+declares `Type=sddm-theme`, `QtVersion=6`) whose `Main.qml` calls
+`sddm.login()`/`sddm.reboot()`/`sddm.powerOff()` and reads `userModel`/
+`sessionModel`/`SddmComponents 2.0` — an API that only exists inside SDDM's
+own greeter process. ReGreet is a GTK4 app with a completely different
+plugin model; hosting this QML unmodified under greetd would mean
+reimplementing the theme from scratch, which the user explicitly ruled out
+("ne tente pas de reproduire artificiellement ce design dans ReGreet").
+Confirmed live on this machine (read-only) before deciding:
+- `qt6-declarative`, `qt6-multimedia`, `qt6-multimedia-ffmpeg`,
+  `qt6-5compat`, `qt6-svg` (6.11.2-1) are **already installed** (pulled in
+  by the existing KDE/Plasma install) — only the `sddm` package itself and
+  a Wayland-greeter host compositor are actually missing.
+- `sddm` is **not** installed; `greetd`/`greetd-regreet`/`kmscon` are (and
+  `greetd.service` is the live, working `display-manager.service` — the
+  prior "greetd/ReGreet login chain" entries below already got this
+  working, including the VT1/kmscon fix).
+- SDDM's Wayland greeter needs a host compositor via `CompositorCommand=`.
+  Researched three options: `CompositorCommand=Hyprland` (real forum
+  reports — Arch Linux Forums #289612 — of it rendering only the wallpaper
+  with no greeter window, an unacceptable regression class right after all
+  the kmscon/VT1 debugging already in this file), `cage` (no confirmed
+  SDDM-specific precedent found — its common pairing is greetd/ReGreet, a
+  different codepath), and **weston with no `CompositorCommand` override**
+  (SDDM's own documented default when `DisplayServer=wayland` is set — the
+  one path actually described as the tested default). Chose weston.
+
+**Built** (`installer/sddm/` — versioned source; nothing under `/etc` or
+`/usr` was touched):
+- `themes/pixel-rainyroom/`, `themes/pixel-cyberpunk/` — vendored unmodified
+  from qylock commit `f86d3f6` (2026-08-24): `Main.qml`,
+  `BackgroundVideo.qml`, `bg.mp4`, `font/PixelifySans-Bold.ttf`,
+  `metadata.desktop`, `theme.conf`. Only these 2 of qylock's ~40 themes
+  were copied in, not the full repo (not the Quickshell-lockscreen half
+  either — out of scope, this is the SDDM login screen only).
+  `themes/LICENSE-qylock` (full GPL-3.0 text, unchanged) and
+  `themes/CREDITS.md` (author, commit, wallpaper source (MoeWalls) and
+  font (Pixelify Sans, OFL) credits, as qylock's own README attributes
+  them) carry the license/attribution forward per the user's explicit
+  requirement.
+- `sddm.conf.d/10-theme.conf` — `[Theme] Current=pixel-rainyroom`,
+  `ThemeDir=/usr/share/sddm/themes`.
+- `sddm.conf.d/20-wayland.conf` — `[General] DisplayServer=wayland`,
+  `Numlock=on`; `[Wayland] SessionDir=/etc/sddm/hyde-sessions`,
+  `GreeterEnvironment=XKB_DEFAULT_LAYOUT=fr`. Comments in the file record
+  the compositor decision above and the keyboard-layout caveat below.
+- `installer/setup-sddm.sh` — root-only, `setup-greetd.sh`-style
+  (`set -eu`, refuses non-root, refuses to run if
+  `/usr/share/wayland-sessions/hyprland-uwsm.desktop` is missing). Backs up
+  any existing `/etc/sddm.conf.d/` (timestamped), installs the two conf
+  files, deploys both vendored themes to `/usr/share/sddm/themes/`, and
+  creates `/etc/sddm/hyde-sessions/hyprland-uwsm.desktop` as a **symlink**
+  to the packaged file — never a copy, so it can't drift, and never touches
+  `hyprland.desktop`/`plasma.desktop` under `/usr/share/wayland-sessions/`
+  at all. This is the "no three useless session choices" requirement: SDDM
+  is pointed at a fork-owned `SessionDir` containing only the one entry,
+  instead of masking/deleting anything under the package-owned directory.
+- `installer/switch-sddm-theme.sh rainy-room|cyberpunk` — root-only, the
+  requested one-command theme switch. Edits `Current=` in
+  `/etc/sddm.conf.d/10-theme.conf` only; does not restart `sddm.service` or
+  touch a live session (takes effect at the next greeter start).
+- `installer/migrate-greetd-to-sddm.sh` — root-only, mirrors
+  `switch-display-manager.sh`'s preflight rigor exactly: refuses unless
+  `/etc/sddm.conf.d/` byte-matches `installer/sddm/sddm.conf.d/` (i.e.
+  `setup-sddm.sh` ran), `sddm`/`weston` binaries and both theme dirs are
+  actually present, the `hyde-sessions` symlink resolves, and the
+  kmscon/VT1 conflict (documented below, in the "greetd boot falls back to
+  tty1" entry) is still clear — that race applies identically to sddm's own
+  greeter process on VT1. Then `systemctl disable greetd.service &&
+  systemctl enable sddm.service`. Does **not** remove `greetd`/
+  `greetd-regreet` (kept installed+disabled as the rollback path) and does
+  **not** start sddm live — reboot-to-test, same policy as
+  `switch-display-manager.sh`. Rollback printed on every run:
+  `sudo systemctl disable sddm && sudo systemctl enable greetd`, or from a
+  TTY (Ctrl+Alt+F2..F6) if the graphical session never comes up.
+- `installer/packages.manifest` — added `sddm`, `weston` (both missing,
+  official `extra` repo, picked up by `install.sh --install`'s existing
+  single-confirmation `pacman -S --needed` step) and `greetd`,
+  `greetd-regreet`, `kmscon` (already installed, added for manifest
+  completeness — they were undocumented gaps left over from the earlier
+  ad hoc greetd work below).
+
+**Verified (read-only, no `sudo`, nothing executed as root)**: `sh -n` and
+(shellcheck unavailable on this machine, same fallback as prior entries)
+on all three new scripts; `python3 -c 'import configparser; ...'` parses
+every new `.conf`/`.desktop` file into the expected sections/keys;
+`localectl status` confirms the machine's real layout is already `fr`
+(`VC Keymap: fr`, `X11 Layout: fr`) so `XKB_DEFAULT_LAYOUT=fr` matches;
+`readlink -f /etc/systemd/system/display-manager.service` confirms greetd
+is still the live, untouched DM; `pacman -Q` confirms `sddm`/`cage`/
+`weston` are genuinely absent and the Qt6 modules qylock needs are already
+present.
+
+**Not done (by design)**: no package installed, no file written under
+`/etc` or `/usr`, no systemd service enabled/disabled/started — greetd is
+still the active display manager. `installer/setup-sddm.sh` and
+`installer/migrate-greetd-to-sddm.sh` both require `sudo` and are left for
+the user to run and review themselves, same hard boundary as every prior
+DM-related entry in this file. Next steps for the user, in order:
+1. `./install.sh --install` (or `installer/packages.sh --install`) to get
+   the single confirmed `pacman -S --needed sddm weston` prompt.
+2. `sudo installer/setup-sddm.sh`
+3. `sudo installer/migrate-greetd-to-sddm.sh`
+4. Reboot, verify the Rainy Room greeter, French keyboard input in the
+   password field, and login into Hyprland-UWSM. The one flagged
+   uncertainty is keyboard layout on SDDM's Wayland greeter specifically —
+   sddm/sddm#1528 documents cases where layout selection doesn't take on
+   Wayland even when configured; if `fr` doesn't apply, that's the first
+   thing to report back, with a plain `systemctl disable sddm && systemctl
+   enable greetd` rollback available immediately from a TTY.
+5. `sudo installer/switch-sddm-theme.sh cyberpunk` (or `rainy-room`) to
+   change theme at any time afterward.
+
 ## Post-Slice-8 (cont. 3) — Aquamarine "CBackend::create() failed" reclassified as seat conflict, not GPU bug
 
 A follow-up report claimed a *new* backend-creation failure (`CBackend::
@@ -400,3 +591,151 @@ that could be verified without a live session to test against.
 
 **Verified (updated)**: `luac -p` on the two edited Lua files, `sh -n` on
 `rofilaunch.sh`; `bash tests/run.sh` — 20/20 pass.
+
+## Post-Slice-8 (cont.) — greetd/ReGreet login chain, decoupling from plasmalogin
+
+User's end goal: eventually drop KDE Plasma entirely. First step: make the
+Hyprland login chain (greetd → ReGreet → `Hyprland (uwsm-managed)`) fully
+independent of Plasma, without touching Plasma yet.
+
+**Origin, established by reading the machine, not assumed**: `greetd` and
+`greetd-regreet` (0.10.3-2 / 0.5.0-1) were already installed on this machine
+and `/etc/greetd/{config.toml,regreet.toml}` already existed, dated the same
+day as this audit — but neither the repo (any branch, `git log`/`grep` on
+`greetd|regreet` across `origin` and `upstream/master` all came back empty)
+nor upstream HyDE has ever referenced greetd/ReGreet anywhere. This was a
+manual, undocumented on-machine install, not part of this fork.
+
+**Found broken**: the live `/etc/greetd/config.toml` had
+`command = "regreet"` — ReGreet is a GTK4/`gtk4-layer-shell` app, not a
+compositor; run bare like this it has no Wayland session to draw into and
+greetd would just restart-loop it. `greetd-regreet`'s own pacman dependency
+graph pulls in `hyprland` directly (confirmed via `pacman -Qi hyprland`,
+"Required by: greetd-regreet") and `cage` isn't installed — so the intended
+wrapper on this system is Hyprland itself, not cage.
+
+**Built** (`installer/greetd/` — versioned source; nothing under `/etc` was
+touched):
+- `config.toml` — `command = "env HOME=/var/lib/regreet start-hyprland --
+  --config /etc/greetd/hyprland.lua"`, `user = "greeter"`. `start-hyprland`
+  (not the bare `Hyprland` binary) per the current Hyprland wiki's Master
+  Tutorial ("Launching Hyprland"), confirmed live: `start-hyprland -h` prints
+  its watchdog-wrapper usage and passes `--` args straight to Hyprland.
+  `HOME` is overridden to `/var/lib/regreet` because the `greeter` system
+  user's real home is `/` (read-only root, `dr-xr-xr-x`) — Hyprland/GTK would
+  fail writing cache/state there. `/var/lib/regreet` (and `/var/log/regreet`)
+  already exist, `greeter`-owned 755, provisioned by
+  `greetd-regreet`'s own `tmpfiles.d` — not something we created.
+- `hyprland.lua` — minimal **native Lua** Hyprland config (Hyprland 0.56.2
+  loads `.lua` directly, confirmed against the live `hl.on`/`hl.exec_cmd`
+  API and the Hyprland wiki's Autostart docs), isolated from
+  `~/.local/share/hypr/hyde.lua`/`~/.config/hypr/hyprland.lua` — no HyDE
+  bindings, no daemons. Sets `input.kb_layout = "fr"` to match this
+  machine's real layout (`localectl status` → `VC Keymap: fr`; the login
+  screen must accept password input in the right layout). On
+  `hyprland.start`, execs `regreet; hyprctl dispatch exit` — Hyprland quits
+  cleanly the moment ReGreet hands off (success or cancel) instead of
+  lingering.
+- `regreet.toml` — unchanged from the live file (already correct: dark
+  theme, French greeting, `systemctl reboot/poweroff`), just brought under
+  version control.
+- `setup-greetd.sh` — root-only, `finalize-workstation-root.sh`-style
+  (`set -eu`, refuses non-root). Backs up the existing `/etc/greetd/` (whole
+  dir, timestamped) and installs the three files above with
+  root:root/644. Does **not** touch any systemd service or plasmalogin.
+- `switch-display-manager.sh` — root-only. Refuses to run unless
+  `/etc/greetd/*` already matches `installer/greetd/*` byte-for-byte (i.e.
+  `setup-greetd.sh` ran first) and unless `regreet`/`start-hyprland`/`uwsm`
+  and the `hyprland-uwsm.desktop` session file are all present. Then:
+  `systemctl disable plasmalogin.service && systemctl enable greetd.service`
+  — the two units share the same `Alias=display-manager.service`, so
+  disabling the old one first avoids any alias conflict — then prints the
+  resulting `is-enabled`/`is-enabled`/`readlink -f
+  display-manager.service` state. Deliberately does not start greetd live;
+  the plan is reboot-to-test, not a live DM swap. Never runs
+  `pacman -R` on anything.
+
+**Verified on the live machine (read-only, no `sudo`)**: `greetd.service`
+already correctly declares `Conflicts=getty@tty1.service` /
+`After=getty@tty1.service` for VT1 (mirrors `plasmalogin.service`'s own
+`Conflicts=getty@tty1.service`), and `getty@tty1.service` is
+disabled/inactive — no VT contention. PAM chain
+(`greetd` → `system-local-login` → `system-login`) includes
+`pam_systemd.so`, so `XDG_RUNTIME_DIR`/logind session setup for the
+`greeter` user works the same way it does for a normal login. Three session
+`.desktop`s are present for ReGreet to list: `hyprland-uwsm.desktop`,
+`hyprland.desktop`, `plasma.desktop` — Plasma stays selectable throughout.
+`luac -p` on `hyprland.lua`; `sh -n` on both new scripts (`shellcheck` isn't
+installed on this machine, so that check was skipped — `sh -n` was used
+instead, per this doc's own verification-commands fallback).
+
+**Not done (by design, stopped here)**: nothing under `/etc` was written,
+no systemd service was enabled/disabled/started, plasmalogin is still the
+active `display-manager.service`, KDE/Plasma packages untouched. Running
+`setup-greetd.sh` and `switch-display-manager.sh` both require `sudo` and
+are left for the user to run and review themselves — this assistant does
+not run `sudo` per this fork's hard boundaries. Next actual DM switch and
+the post-reboot verification are a separate, explicitly-approved step.
+
+## Post-Slice-8 (cont.) — greetd boot falls back to tty1: root cause and fix
+
+By the time of this entry `switch-display-manager.sh` had already been run
+(by the user, out of band) — `greetd.service` is enabled and
+`display-manager.service` points at it — and `/etc/greetd/{config.toml,
+hyprland.lua}` had already been hand-patched live to `dbus-run-session
+start-hyprland -- -c ...` and `hl.dsp.exit()` (both confirmed correct
+against current community greetd+ReGreet+Hyprland examples). Yet every
+boot still landed on a plain `tty1` login prompt instead of the ReGreet
+screen.
+
+**Root cause, found via `journalctl -b -1 -u greetd` / `coredumpctl` /
+`systemctl status kmsconvt@tty1.service`, not assumed**:
+`/etc/systemd/system/kmsconvt@.service` — a manual, undocumented unit
+created directly on this machine on 2026-08-22 (owned by no pacman package,
+referenced nowhere in this repo or upstream HyDE) — is aliased to
+`autovt@.service` and enabled on `tty1` via `getty.target`. The prior audit
+entry above checked only `getty@tty1.service` (correctly inactive) and
+concluded "no VT contention," missing that `kmsconvt@tty1.service` is a
+*different* unit that greetd's `Conflicts=getty@tty1.service` does nothing
+to stop. On boot, both greetd and kmscon try to become DRM master on
+`/dev/dri/card1` for `tty1`. kmscon loses the race, hits an unhandled error
+path in its `drm_shared` backend and segfaults
+(`systemd-coredump`/`coredumpctl` confirmed `SIGSEGV` in
+`drm_shared.c:set_drm_master`) — and its `TTYVHangup=yes`/`TTYReset=yes`
+cleanup on `tty1` kills the Hyprland/ReGreet session greetd had just
+started there, before Hyprland logs a single line (`journalctl -b 0
+_COMM=Hyprland` — no entries). greetd then reports `error: check_children:
+greeter exited without creating a session` and deactivates; systemd's
+`OnFailure=getty@tty1.service` in `kmsconvt@.service` starts a bare
+`agetty` on `tty1` — exactly the observed symptom.
+
+**Fixed** (`installer/`):
+- `fix-vt1-conflict.sh` — new, root-only. Disables the
+  `kmsconvt@tty1.service` instance and removes the `autovt@.service` alias
+  symlink so no future VT activation on `tty1` re-spawns kmscon there.
+  Leaves the `kmsconvt@.service` unit file and the `kmscon` package in
+  place (not this fork's to remove) in case the user wants it on a
+  different tty later.
+- `switch-display-manager.sh` — added a preflight check that refuses to
+  enable greetd if `kmsconvt@tty1.service`/`autovt@.service` is still
+  enabled, pointing at `fix-vt1-conflict.sh`, so this exact failure mode
+  can't silently recur on a future reinstall.
+- `installer/greetd/{config.toml,hyprland.lua}` — the repo copies had
+  drifted behind the live, already-fixed files (still had the older
+  `start-hyprland -- --config ...` without `dbus-run-session`, and
+  `hyprctl dispatch exit` instead of `hl.dsp.exit()`); synced to match live
+  so `setup-greetd.sh` can no longer overwrite a working config with a
+  stale one.
+- Removed two stray, superseded root-level files (`greetd-config.toml` —
+  an even earlier draft with `command = "regreet"`, the exact bug already
+  documented above as "found broken" — and a duplicate `regreet.toml`);
+  `installer/greetd/` is the single source of truth.
+
+**Verified (read-only, no `sudo`)**: `sh -n` on all four installer scripts;
+`luac -p` on `hyprland.lua`; `python3 -c 'import tomllib; ...'` on
+`config.toml`/`regreet.toml`; confirmed via `WebSearch` that
+`dbus-run-session start-hyprland -- -c <path>` matches current
+community-maintained greetd+ReGreet+Hyprland examples (not just this
+machine's own prior fix). Not verified by an actual reboot — that step is
+still the user's, deliberately, per this fork's hard boundaries (no
+`sudo`, no service enable/disable/restart performed by this assistant).
