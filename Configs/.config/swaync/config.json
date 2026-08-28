@@ -6,7 +6,7 @@
   "cssPriority": "user",
   "fit-to-screen": true,
   "control-center-width": 430,
-  "control-center-height": 300,
+  "control-center-height": 620,
   "control-center-margin-top": 15,
   "control-center-margin-bottom": 15,
   "control-center-margin-right": 15,
@@ -76,7 +76,7 @@
       "label": " 󰕾 "
     },
     "buttons-grid": {
-      "buttons-per-row": 3,
+      "buttons-per-row": 4,
       "actions": [
         {
           "label": "󰖩",
@@ -133,6 +133,10 @@
         {
           "label": "󰒓",
           "command": "hyde-shell control-center"
+        },
+        {
+          "label": "󰉋",
+          "command": "hyde-shell files"
         }
       ]
     }

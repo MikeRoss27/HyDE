@@ -1,48 +1,221 @@
-/* User custom styles */
+/* Modern HyDE: a compact cyber-industrial bar driven by Wallbash colours. */
 
 * {
-    font-size: 13px;
+    font-family: "CaskaydiaCove Nerd Font Propo", "Noto Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
 }
 
-#custom-pin-1,
-#custom-pin-2,
-#custom-pin-3,
-#custom-pin-4,
-#custom-pin-5,
-#custom-pin-6,
-#custom-pin-7,
-#custom-pin-manager {
-    min-width: 28px;
-    margin: 5px 3px;
-    padding: 0 9px;
-    border-radius: 11px;
+window#waybar {
+    background: transparent;
     color: @main-fg;
-    background: alpha(@main-bg, 0.72);
-    transition: all 180ms ease;
 }
 
-#custom-pin-1:hover,
-#custom-pin-2:hover,
-#custom-pin-3:hover,
-#custom-pin-4:hover,
-#custom-pin-5:hover,
-#custom-pin-6:hover,
-#custom-pin-7:hover,
-#custom-pin-manager:hover {
+#modern-nav,
+#modern-context,
+#modern-status {
+    background: alpha(@main-bg, 0.78);
+    border: 1px solid alpha(@main-fg, 0.34);
+    border-radius: 9px;
+    box-shadow: inset 0 -2px alpha(@main-fg, 0.16), 0 4px 12px alpha(black, 0.28);
+}
+
+#modern-nav,
+#modern-status {
+    padding: 0 5px;
+}
+
+#modern-context {
+    min-width: 180px;
+    padding: 0 12px;
+}
+
+#hyprland-window {
+    min-width: 180px;
+    color: alpha(@main-fg, 0.82);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 4px;
+}
+
+#custom-app-launcher,
+#custom-files,
+#custom-hyde-menu,
+#custom-swaync,
+#privacy,
+#idle_inhibitor,
+#pulseaudio.microphone,
+#backlight,
+#tray,
+#network,
+#pulseaudio,
+#battery,
+#clock,
+#custom-power {
+    min-height: 24px;
+    margin: 2px 0;
+    padding: 0 6px;
+    border-radius: 5px;
+    transition: background 140ms ease, color 140ms ease;
+}
+
+#custom-app-launcher {
+    min-width: 26px;
+    padding: 0;
+    color: @wb-act-fg;
+    background: @wb-act-bg;
+    border-radius: 6px;
+    box-shadow: inset 0 -2px alpha(@wb-act-fg, 0.22);
+}
+
+#custom-files,
+#custom-hyde-menu {
+    min-width: 24px;
+    padding: 0;
+    color: @main-fg;
+    background: alpha(@main-fg, 0.10);
+}
+
+#custom-power {
+    color: @wb-hvr-bg;
+    background: alpha(@wb-hvr-bg, 0.10);
+}
+
+#custom-app-launcher:hover,
+#custom-files:hover,
+#custom-hyde-menu:hover,
+#custom-swaync:hover,
+#idle_inhibitor:hover,
+#pulseaudio.microphone:hover,
+#backlight:hover,
+#network:hover,
+#pulseaudio:hover,
+#battery:hover,
+#clock:hover,
+#custom-power:hover {
     color: @wb-hvr-fg;
     background: @wb-hvr-bg;
 }
 
-#custom-pin-1.running,
-#custom-pin-2.running,
-#custom-pin-3.running,
-#custom-pin-4.running,
-#custom-pin-5.running,
-#custom-pin-6.running,
-#custom-pin-7.running {
+#modern-launchers {
+    margin-right: 4px;
+    padding-right: 4px;
+    border-right: 1px solid alpha(@main-fg, 0.22);
+}
+
+.modern-launchers-drawer {
+    color: alpha(@main-fg, 0.76);
+}
+
+#modern-tools {
+    margin-right: 3px;
+    padding-right: 3px;
+    border-right: 1px solid alpha(@main-fg, 0.22);
+}
+
+.modern-tools-drawer {
+    color: alpha(@main-fg, 0.72);
+}
+
+#privacy-item {
     color: @wb-act-fg;
-    background: @wb-act-bg;
-    box-shadow: inset 0 -2px alpha(@wb-act-fg, 0.65);
+    background: alpha(@wb-act-bg, 0.72);
+    border-radius: 12px;
+    padding: 0 5px;
+}
+
+#idle_inhibitor.activated,
+#pulseaudio.microphone.muted {
+    color: @wb-act-fg;
+    background: alpha(@wb-act-bg, 0.72);
+}
+
+#battery.warning:not(.charging) {
+    color: #f9c74f;
+}
+
+#battery.critical:not(.charging) {
+    color: #ff5d62;
+}
+
+#battery.charging,
+#battery.plugged {
+    color: @main-fg;
+}
+
+tooltip {
+    background: alpha(@main-bg, 0.96);
+    border: 1px solid alpha(@main-fg, 0.42);
+    border-radius: 7px;
+}
+
+tooltip label {
+    color: @main-fg;
+    padding: 6px 8px;
+}
+
+#workspaces {
+    margin: 0 2px;
+}
+
+#workspaces button {
+    min-width: 18px;
+    min-height: 24px;
+    margin: 2px 1px;
+    padding: 0 3px;
+    border-radius: 5px;
+    color: alpha(@main-fg, 0.50);
+    background: transparent;
+    box-shadow: none;
+    transition: background 150ms ease, color 150ms ease, min-width 150ms ease;
+}
+
+#workspaces button.active {
+    min-width: 24px;
+    margin: 2px 1px;
+    padding: 0 5px;
+    color: @main-fg;
+    background: alpha(@main-fg, 0.13);
+    box-shadow: inset 0 -2px @main-fg;
+}
+
+#workspaces button:hover {
+    color: @wb-hvr-bg;
+    background: alpha(@wb-hvr-bg, 0.14);
+}
+
+#workspaces button.urgent {
+    color: @wb-hvr-bg;
+    box-shadow: inset 0 -2px @wb-hvr-bg;
+}
+
+#image.pin-1,
+#image.pin-2,
+#image.pin-3,
+#image.pin-4,
+#image.pin-5,
+#image.pin-6,
+#image.pin-7,
+#custom-pin-manager {
+    min-width: 26px;
+    min-height: 26px;
+    margin: 2px;
+    padding: 3px;
+    border-radius: 7px;
+    background: alpha(@main-bg, 0.58);
+    transition: background 140ms ease, box-shadow 140ms ease;
+}
+
+#image.pin-1:hover,
+#image.pin-2:hover,
+#image.pin-3:hover,
+#image.pin-4:hover,
+#image.pin-5:hover,
+#image.pin-6:hover,
+#image.pin-7:hover,
+#custom-pin-manager:hover {
+    background: alpha(@wb-hvr-bg, 0.18);
+    box-shadow: inset 0 -2px @wb-hvr-bg;
 }
 
 #custom-pin-manager {
@@ -50,26 +223,19 @@
     background: transparent;
 }
 
-#custom-pin-1.empty,
-#custom-pin-2.empty,
-#custom-pin-3.empty,
-#custom-pin-4.empty,
-#custom-pin-5.empty,
-#custom-pin-6.empty,
-#custom-pin-7.empty {
+#image.pin-1.empty,
+#image.pin-2.empty,
+#image.pin-3.empty,
+#image.pin-4.empty,
+#image.pin-5.empty,
+#image.pin-6.empty,
+#image.pin-7.empty {
     min-width: 0;
     margin: 0;
     padding: 0;
     background: transparent;
 }
 
-#taskbar {
-    margin-left: 5px;
-}
-
-#taskbar button {
-    min-width: 28px;
-    margin: 5px 3px;
-    padding: 0 9px;
-    border-radius: 11px;
+#custom-pin-manager {
+    color: alpha(@main-fg, 0.55);
 }

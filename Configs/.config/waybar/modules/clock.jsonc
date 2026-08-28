@@ -1,7 +1,17 @@
-/*
-To use updated module, please delete this file. 
-To modify the module, 
-    copy the content from xdg_share/waybar/modules/*.jsonc to ~/.config/waybar/modules/*.jsonc
-See https://man.archlinux.org/man/waybar-clock.5
-*/
-{}
+{
+    "clock": {
+        "format": "{:%H:%M}",
+        "format-alt": "{:%a %d %b  ·  %H:%M}",
+        "tooltip-format": "<big>{:%A %d %B %Y}</big>\n<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "month",
+            "mode-mon-col": 3,
+            "on-scroll": 1
+        },
+        "actions": {
+            "on-click-right": "mode",
+            "on-scroll-up": "shift_up",
+            "on-scroll-down": "shift_down"
+        }
+    }
+}

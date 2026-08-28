@@ -2,83 +2,69 @@
     "group/pinned-apps": {
         "orientation": "inherit",
         "modules": [
-            "custom/pin-1",
-            "custom/pin-2",
-            "custom/pin-3",
-            "custom/pin-4",
-            "custom/pin-5",
-            "custom/pin-6",
-            "custom/pin-7",
+            "image#pin-1",
+            "image#pin-2",
+            "image#pin-3",
+            "image#pin-4",
+            "image#pin-5",
+            "image#pin-6",
+            "image#pin-7",
             "custom/pin-manager"
         ]
     },
 
-    "custom/pin-1": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 1",
-        "interval": "once",
+    "image#pin-1": {
+        "exec": "hyde-shell pinned-app image 1",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 1",
         "on-click-right": "hyde-shell pinned-app choose 1",
         "on-click-middle": "hyde-shell pinned-app unpin 1"
     },
-    "custom/pin-2": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 2",
-        "interval": "once",
+    "image#pin-2": {
+        "exec": "hyde-shell pinned-app image 2",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 2",
         "on-click-right": "hyde-shell pinned-app choose 2",
         "on-click-middle": "hyde-shell pinned-app unpin 2"
     },
-    "custom/pin-3": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 3",
-        "interval": "once",
+    "image#pin-3": {
+        "exec": "hyde-shell pinned-app image 3",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 3",
         "on-click-right": "hyde-shell pinned-app choose 3",
         "on-click-middle": "hyde-shell pinned-app unpin 3"
     },
-    "custom/pin-4": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 4",
-        "interval": "once",
+    "image#pin-4": {
+        "exec": "hyde-shell pinned-app image 4",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 4",
         "on-click-right": "hyde-shell pinned-app choose 4",
         "on-click-middle": "hyde-shell pinned-app unpin 4"
     },
-    "custom/pin-5": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 5",
-        "interval": "once",
+    "image#pin-5": {
+        "exec": "hyde-shell pinned-app image 5",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 5",
         "on-click-right": "hyde-shell pinned-app choose 5",
         "on-click-middle": "hyde-shell pinned-app unpin 5"
     },
-    "custom/pin-6": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 6",
-        "interval": "once",
+    "image#pin-6": {
+        "exec": "hyde-shell pinned-app image 6",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 6",
         "on-click-right": "hyde-shell pinned-app choose 6",
         "on-click-middle": "hyde-shell pinned-app unpin 6"
     },
-    "custom/pin-7": {
-        "return-type": "json",
-        "exec": "hyde-shell pinned-app status 7",
-        "interval": "once",
+    "image#pin-7": {
+        "exec": "hyde-shell pinned-app image 7",
+        "size": 22,
         "signal": 10,
-        "exec-on-event": true,
         "on-click": "hyde-shell pinned-app activate 7",
         "on-click-right": "hyde-shell pinned-app choose 7",
         "on-click-middle": "hyde-shell pinned-app unpin 7"

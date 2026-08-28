@@ -28,13 +28,6 @@ DEFAULTS = [
     "com.brave.Browser.desktop", "com.visualstudio.code.desktop",
     "org.kde.dolphin.desktop", "kitty.desktop", "dev.zed.Zed.desktop",
 ]
-GLYPHS = {
-    "com.brave.browser.desktop": "", "com.visualstudio.code.desktop": "󰨞",
-    "org.kde.dolphin.desktop": "", "kitty.desktop": "",
-    "dev.zed.zed.desktop": "󰰭", "firefox.desktop": "󰈹",
-    "com.discordapp.discord.desktop": "", "com.spotify.client.desktop": "",
-    "com.bitwarden.desktop.desktop": "󰌆", "org.localsend.localsend_app.desktop": "󰒍",
-}
 ALIASES = {
     "com.brave.browser.desktop": ["brave-browser"],
     "com.visualstudio.code.desktop": ["code"],
@@ -149,9 +142,7 @@ def match(entry: dict[str, object], windows: list[dict[str, object]] | None = No
 
 
 def glyph(entry: dict[str, object]) -> str:
-    known = GLYPHS.get(str(entry["id"]).lower())
-    if known:
-        return known
+    """Text fallback used only when an installed application has no icon."""
     categories = set(entry["categories"])
     for names, symbol in [
         ({"WebBrowser", "Network"}, "󰖟"), ({"Development", "IDE"}, "󰅩"),
@@ -163,6 +154,54 @@ def glyph(entry: dict[str, object]) -> str:
         if categories & names:
             return symbol
     return "󰀻"
+
+
+def icon_roots(desktop_id: str) -> list[Path]:
+    """Return icon roots in order of fidelity, official app assets first."""
+    app_id = desktop_id.removesuffix(".desktop")
+    return [
+        Path.home() / f".local/share/flatpak/app/{app_id}/current/active/export/share/icons/hicolor",
+        Path(f"/var/lib/flatpak/app/{app_id}/current/active/export/share/icons/hicolor"),
+        Path.home() / ".local/share/icons/hicolor",
+        Path("/usr/local/share/icons/hicolor"),
+        Path("/usr/share/icons/hicolor"),
+        Path.home() / ".local/share/icons",
+        Path.home() / ".icons",
+        Path("/usr/share/icons"),
+        Path("/usr/share/pixmaps"),
+    ]
+
+
+def icon_path(entry: dict[str, object]) -> Path | None:
+    """Resolve a desktop entry's real SVG/PNG icon without GTK bindings."""
+    icon = str(entry.get("icon", "")).strip()
+    direct = Path(icon).expanduser()
+    if direct.is_file():
+        return direct.resolve()
+    if not icon or "/" in icon:
+        return None
+
+    names = [icon]
+    desktop_icon = str(entry["id"]).removesuffix(".desktop")
+    if desktop_icon not in names:
+        names.append(desktop_icon)
+
+    for root in icon_roots(str(entry["id"])):
+        if not root.is_dir():
+            continue
+        matches = []
+        for name in names:
+            for extension in ("svg", "png", "xpm"):
+                matches.extend(root.glob(f"**/{name}.{extension}"))
+        if matches:
+            # Prefer scalable assets, then the highest-resolution raster.
+            def quality(path: Path) -> tuple[int, int, int]:
+                size = re.search(r"/(\d+)x\d+/", path.as_posix())
+                pixels = int(size.group(1)) if size else 0
+                return (0 if path.suffix.lower() == ".svg" else 1, -pixels, len(path.parts))
+
+            return sorted(set(matches), key=quality)[0].resolve()
+    return None
 
 
 def rofi_pick(rows: list[tuple[str, str]], prompt: str) -> int | None:
@@ -202,6 +241,22 @@ def status(slot: int, state: dict[str, object], apps: dict[str, dict[str, object
                    "Clic : ouvrir/afficher · droit : remplacer · milieu : retirer",
     }
     print(json.dumps(output, ensure_ascii=False))
+
+
+def image(slot: int, state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
+    """Emit the real icon path and tooltip expected by Waybar's image module."""
+    desktop_id = state["slots"][slot]
+    if not desktop_id:
+        print()
+        return
+    entry = apps[desktop_id]
+    path = icon_path(entry)
+    if path is None:
+        print()
+        return
+    running = match(entry) is not None
+    print(path)
+    print(f"{entry['name']} · {'ouverte' if running else 'épinglée'}")
 
 
 def choose(slot: int, state: dict[str, object], apps: dict[str, dict[str, object]]) -> None:
@@ -260,6 +315,7 @@ def main() -> int:
     state = load_state(apps)
     try:
         if action == "status": status(index(sys.argv[2]), state, apps)
+        elif action == "image": image(index(sys.argv[2]), state, apps)
         elif action == "activate": activate(index(sys.argv[2]), state, apps)
         elif action == "choose": choose(index(sys.argv[2]), state, apps)
         elif action == "unpin": state["slots"].__setitem__(index(sys.argv[2]), None); save(state)
@@ -269,7 +325,7 @@ def main() -> int:
             for number, item in enumerate(state["slots"], 1): print(number, item or "-", sep="\t")
         else: raise ValueError
     except (IndexError, ValueError):
-        print("Usage: pinned-app {status|activate|choose|unpin} SLOT | manage | pin-active | list", file=sys.stderr)
+        print("Usage: pinned-app {status|image|activate|choose|unpin} SLOT | manage | pin-active | list", file=sys.stderr)
         return 2
     return 0
 

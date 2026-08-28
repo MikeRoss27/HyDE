@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Fichiers HyDE
+Comment=Gestionnaire de fichiers moderne pour HyDE
+Exec=hyde-shell files
+Icon=org.gnome.Nautilus
+Terminal=false
+Categories=Utility;FileManager;GTK;
+MimeType=inode/directory;
+StartupNotify=true

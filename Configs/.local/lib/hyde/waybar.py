@@ -153,6 +153,11 @@ def extend_layout_with_pinned_apps(data):
         if not isinstance(bar, dict):
             continue
 
+        # Some layouts (such as the compact modern bar) deliberately reserve
+        # the centre for the active-window title.  Keep pinned launchers out
+        # of those layouts while retaining the existing behaviour elsewhere.
+        pinned_apps_enabled = bar.pop("hyde-pinned-apps", True)
+
         module_lists = []
         for key in ("modules-left", "modules-center", "modules-right"):
             modules = bar.get(key)
@@ -160,6 +165,9 @@ def extend_layout_with_pinned_apps(data):
                 while PINNED_APPS_GROUP in modules:
                     modules.remove(PINNED_APPS_GROUP)
                 module_lists.append(modules)
+
+        if not pinned_apps_enabled:
+            continue
 
         def contains_taskbar(module_name):
             if isinstance(module_name, str) and module_name.startswith("wlr/taskbar"):
@@ -671,6 +679,33 @@ def is_waybar_running_for_current_user():
     return False
 
 
+def kill_waybar_processes():
+    """Terminate every Waybar process owned by the current user.
+
+    Waybar is sometimes started directly from a terminal while the HyDE unit is
+    inactive.  Starting the managed unit afterwards would otherwise leave both
+    bars visible.  Restricting pgrep/pkill by UID and exact process name keeps
+    the cleanup scoped to this user's Waybar instances.
+    """
+    uid = str(os.getuid())
+    subprocess.run(["pkill", "-u", uid, "-x", "waybar"])
+
+    # pkill only sends the signal; wait briefly so the replacement cannot
+    # overlap an old layer-shell surface that is still shutting down.
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        result = subprocess.run(
+            ["pgrep", "-u", uid, "-x", "waybar"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        if result.returncode != 0:
+            return
+        time.sleep(0.05)
+
+    subprocess.run(["pkill", "-KILL", "-u", uid, "-x", "waybar"])
+
+
 def run_waybar():
     """Run Waybar."""
     if is_waybar_running_for_current_user():
@@ -678,6 +713,8 @@ def run_waybar():
         return
 
     if HAS_SYSTEMD:
+        # Replace a terminal-launched instance with the single managed unit.
+        kill_waybar_processes()
         result = subprocess.run(["systemctl", "--user", "start", UNIT_NAME], capture_output=True)
         if result.returncode == 0:
             logger.debug(f"Started existing unit {UNIT_NAME}")
@@ -695,31 +732,23 @@ def run_waybar():
 
 
 def kill_waybar():
-    """Stop Waybar for current session."""
+    """Stop both managed and terminal-launched Waybar instances."""
     if HAS_SYSTEMD:
-        subprocess.run(["systemctl", "--user", "--no-block", "stop", UNIT_NAME])
-    else:
-        subprocess.run(["pkill", "-u", str(os.getuid()), "-x", "waybar"])
+        # Wait for the cgroup to stop before killing any unmanaged leftover.
+        # This also prevents Restart=always from racing the cleanup.
+        subprocess.run(["systemctl", "--user", "stop", UNIT_NAME])
+    kill_waybar_processes()
     logger.debug("Stopped Waybar processes.")
 
 
 def restart_waybar():
     """Restart Waybar cleanly after changing its generated configuration."""
-    if is_waybar_running_for_current_user():
-        if HAS_SYSTEMD:
-            # Waybar 0.15 can leak module processes and abort per-output
-            # children when SIGUSR2 hot reloads a multi-monitor bar.  A unit
-            # restart lets systemd reap the whole old cgroup before starting
-            # the new configuration.
-            logger.debug("Restarting Waybar systemd unit cleanly...")
-            subprocess.run(
-                ["systemctl", "--user", "--no-block", "restart", UNIT_NAME]
-            )
-        else:
-            kill_waybar()
-            run_waybar()
-    else:
-        run_waybar()
+    # Waybar 0.15 can leak module processes on SIGUSR2.  A full stop also
+    # removes Waybars started outside the HyDE unit, which is the common cause
+    # of two independently configured bars appearing on the same output.
+    logger.debug("Restarting a single clean Waybar instance...")
+    kill_waybar()
+    run_waybar()
 
 
 def rofi_file_selector(
@@ -1279,6 +1308,9 @@ def watch_waybar():
         return
 
     if HAS_SYSTEMD:
+        # Do not preserve a Waybar that was launched manually before login
+        # startup reached this managed service.
+        kill_waybar_processes()
         subprocess.run([
             "systemd-run", "--user", f"--unit={UNIT_NAME}", "--slice=app-graphical.slice",
             "--property=Type=exec", "--property=ExitType=cgroup", "--property=Restart=always",

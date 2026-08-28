@@ -37,6 +37,7 @@
 
 .local/share/hypr/
 .local/share/hyde/
+.local/share/applications/io.hyde.Files.desktop
 .local/share/waybar/
 .local/share/wallbash/
 .local/share/icons/

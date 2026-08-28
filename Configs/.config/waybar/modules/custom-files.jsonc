@@ -1,0 +1,9 @@
+{
+    "custom/files": {
+        "format": "󰉋",
+        "tooltip": true,
+        "tooltip-format": "Fichiers HyDE · Super + E",
+        "on-click": "hyde-shell files",
+        "interval": "once"
+    }
+}

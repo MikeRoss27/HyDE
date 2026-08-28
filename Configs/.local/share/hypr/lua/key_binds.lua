@@ -180,6 +180,10 @@ _F = {description = "[Launcher|Rofi menus] Calculator"}
 hl.bind(MOD .. " + SHIFT + K", hl.dsp.exec_cmd(hyde.sh.menu.calculator()), _F)
 _F = {description = "[Launcher|Rofi menus] Web Search"}
 hl.bind(MOD .. " + SHIFT + slash", hl.dsp.exec_cmd(hyde.sh.menu.search()), _F)
+_F = {description = "[Launcher|Rofi menus] workspace overview"}
+hl.bind(MOD .. " + O", hl.dsp.exec_cmd(hyde.sh.menu.overview()), _F)
+_F = {description = "[Launcher|Rofi menus] unified settings / control center"}
+hl.bind(MOD .. " + R", hl.dsp.exec_cmd(hyde.sh.menu.control_center()), _F)
 
 -- $hc=Hardware Controls
 -- $d=[$hc|Audio]

@@ -67,6 +67,11 @@ hl.bind("SUPER + CTRL + I", hl.dsp.exec_cmd("hyde-shell control-center"), {
 	description = "[Utilities] open unified settings",
 })
 
+-- Modern native file manager; SUPER + SHIFT + E still opens Rofi's file finder.
+hl.bind("SUPER + E", hl.dsp.exec_cmd("hyde-shell files"), {
+	description = "[Launcher|Apps] HyDE Files",
+})
+
 -- Replace HyDE's plain SUPER+TAB window list with an overview-aware wrapper.
 -- It falls back to the same reliable list while no compatible plugin is loaded.
 hl.bind("SUPER + TAB", hl.dsp.exec_cmd("hyde-shell workspace-overview"), {
@@ -82,4 +87,37 @@ hl.config({
 	input = {
 		kb_layout = "fr",
 	},
+	general = {
+		gaps_in = 5,
+		gaps_out = 10,
+		border_size = 2,
+	},
+	decoration = {
+		rounding = 14,
+		active_opacity = 0.97,
+		inactive_opacity = 0.91,
+		fullscreen_opacity = 1.0,
+		blur = {
+			enabled = true,
+			size = 7,
+			passes = 3,
+			noise = 0.01,
+			vibrancy = 0.18,
+			special = true,
+		},
+		shadow = {
+			enabled = true,
+			range = 18,
+			render_power = 3,
+			color = "rgba(00000055)",
+		},
+	},
 })
+
+-- A quiet, responsive motion profile: short fades, directional workspaces.
+hl.curve("hyde-modern", { type = "bezier", points = { { 0.2, 0.0 }, { 0.0, 1.0 } } })
+hl.animation({ leaf = "windows", enabled = true, speed = 5, bezier = "hyde-modern" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 5, bezier = "hyde-modern", style = "popin 88%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 4, bezier = "hyde-modern", style = "popin 88%" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 5, bezier = "hyde-modern" })
+hl.animation({ leaf = "fade", enabled = true, speed = 4, bezier = "hyde-modern" })
